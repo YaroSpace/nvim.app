@@ -1,0 +1,11 @@
+services: 
+  database:
+    image: postgres:latest
+    ports:
+      - '5432:5432'
+    environment: 
+      - 'POSTGRES_USER=nvim'
+      - 'POSTGRES_PASSWORD=nvim'
+      - 'POSTGRES_DB=nvim.app'
+      - "POSTGRES_INITDB_ARGS='--encoding=UTF-8'"
+

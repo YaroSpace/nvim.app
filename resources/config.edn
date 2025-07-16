@@ -1,0 +1,2 @@
+{:server {:port #long #or [#env REAL_WORLD_CLOJURE_API_SERVER_PORT 8080]}
+ :topics #csv-set "Topic 1, Topic 2, Topic 3"}
