@@ -20,8 +20,7 @@
     :enter (fn [context]
              (assoc context :dependencies component))}))
 
-(defrecord PedestalComponent
-           [config database-component]
+(defrecord PedestalComponent [config]
   component/Lifecycle
 
   (start [component]

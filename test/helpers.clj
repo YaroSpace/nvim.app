@@ -63,6 +63,7 @@
        (.start database-container#)
        (let [~bound-var (component/start (get-system ~system database-container#))]
          (try
+           (reset! core/nvim-app-system-atom ~bound-var)
            ~@body
            (finally
              (component/stop ~bound-var))))

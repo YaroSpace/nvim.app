@@ -7,6 +7,8 @@
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]))
 
+(defonce nvim-app-system-atom (atom nil))
+
 (defn nvim-database-system [config]
   (component/system-map
    :database-component (database-component/new config)))
@@ -26,6 +28,7 @@
                    (nvim-app-system)
                    (component/start-system))]
 
+    (reset! nvim-app-system-atom system)
     (log/info "Starting nvim-app...")
 
     (.addShutdownHook
@@ -38,7 +41,6 @@
   "
 ```http
 
-http://localhost:8080/greet
 http://localhost:8080/info
 http://localhost:8080/todo/:todo-id
 
