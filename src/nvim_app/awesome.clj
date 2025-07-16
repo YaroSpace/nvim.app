@@ -1,7 +1,11 @@
 (ns nvim-app.awesome
-  (:require [clj-http.client :as http]
-            [clojure.string :as str]
-            [clojure.tools.logging :as log]))
+  (:require
+   [nvim-app.core :as core]
+   [nvim-app.db :as db]
+
+   [clj-http.client :as http]
+   [clojure.string :as str]
+   [clojure.tools.logging :as log]))
 
 (def url "https://raw.githubusercontent.com/rockerBOO/awesome-neovim/refs/heads/main/README.md")
 (def repo-re #"^- \[(.*?)\]\((.*?)\) - (.*)")
@@ -30,16 +34,57 @@
             :else
             (recur next-lines category result)))))))
 
-(defn fetch-and-parse []
+(defn fetch-readme []
   (let [resp (http/get url {:as :text})]
     (log/info "Downloading awesome-neovim README...")
 
     (if (= 200 (:status resp))
-      (parse-readme (:body resp []))
+      (:body resp [])
       (log/error (str "Failed to download awesome-neovim README."
                       {:status (:status resp)
                        :error (:error resp)})))))
 
+(defn get-or-create-category-id [category]
+  (let [result (db/query-one! {:select :id
+                               :from :categories
+                               :where [:= :name category]})]
+    (if (seq result)
+      (:id result)
+      (let [res (db/query-one! {:insert-into :categories
+                                :columns [:name]
+                                :values [[category]]
+                                :returning :id})]
+        (:id res)))))
+
+(defn upsert-plugin! [{:keys [category repo url description]}]
+  (let [category-id (get-or-create-category-id category)
+        existing (db/query-one! {:select [:id]
+                                 :from [:plugins]
+                                 :where [:and
+                                         [:= :repo repo]
+                                         [:= :url url]]})]
+    (if (seq existing)
+      (db/query! {:update :plugins
+                  :set {:description description
+                        :category_id category-id}
+                  :where [:= :id (:id existing)]
+                  :returning :*})
+      (db/query! {:insert-into :plugins
+                  :columns [:category_id :repo :url :description]
+                  :values [[category-id repo url description]]
+                  :returning :*}))))
+
+(defn upsert-plugins! [plugins]
+  (doseq [plugin plugins]
+    (upsert-plugin!  plugin)))
+
 (comment
-  (fetch-and-parse))
+  (require 'dev)
+  (require '[com.stuartsierra.component.repl :as repl])
+  repl/system
+
+  @core/nvim-app-system-atom
+
+  (upsert-plugins! (parse-readme (fetch-readme)))
+  (get-plugins))
 

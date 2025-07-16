@@ -1,7 +1,6 @@
 (ns nvim-app.components.pedestal.core
   (:require
    [nvim-app.components.pedestal.routes :as r]
-   [nvim-app.components.pedestal.handlers :as h]
 
    [com.stuartsierra.component :as component]
    [io.pedestal.http :as http]
@@ -13,7 +12,23 @@
 (def content-negotiation-interceptor
   (content-negotiation/negotiate-content ["application/json"]))
 
-(defn inject-dependencies
+(def exception-interceptor
+  (interceptor/interceptor
+   {:name ::exception-handler
+    :error (fn [context exception]
+             (let [exception-type (-> exception class .getName)
+                   exception-message (.getMessage exception)]
+
+               (log/error :msg (str "Exception occurred: " exception-message))
+
+               (assoc context :response
+                      {:status 500
+                       :headers {"Content-Type" "application/json"}
+                       :body {:error true
+                              :exception-type exception-type
+                              :message exception-message}})))}))
+
+(defn get-inject-dependencies-interceptor
   [component]
   (interceptor/interceptor
    {:name ::inject-dependencies
@@ -34,8 +49,8 @@
 
                   (http/default-interceptors)
                   (update ::http/interceptors
-                          concat [h/exception-handler
-                                  (inject-dependencies component)
+                          concat [exception-interceptor
+                                  (get-inject-dependencies-interceptor component)
                                   content-negotiation-interceptor])
                   (http/create-server)
                   (http/start))]

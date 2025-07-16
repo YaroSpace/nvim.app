@@ -2,6 +2,7 @@
   (:require
    [nvim-app.core :as core]
    [nvim-app.components.pedestal.routes :as r]
+   [nvim-app.db :as db]
 
    [io.pedestal.http.route :as route]
    [com.stuartsierra.component :as component]
@@ -64,6 +65,7 @@
        (let [~bound-var (component/start (get-system ~system database-container#))]
          (try
            (reset! core/nvim-app-system-atom ~bound-var)
+           (db/run-migrations!)
            ~@body
            (finally
              (component/stop ~bound-var))))

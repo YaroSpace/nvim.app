@@ -14,8 +14,8 @@
             [schema-version :as schema-versions]
             (jdbc/execute! database-component (sql/format {:select :* :from :schema_version}))]
 
-        (is (= {:description "add todo tables"
-                :script "V1__add_todo_tables.sql"
+        (is (= {:description "add tables"
+                :script "V1__add_tables.sql"
                 :success true}
                (select-keys schema-version [:description :script :success]))))))
 

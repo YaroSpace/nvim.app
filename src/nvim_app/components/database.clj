@@ -6,19 +6,7 @@
    [hikari-cp.core :refer [make-datasource]]
    [clojure.tools.logging :as log])
 
-  (:import
-   [org.flywaydb.core Flyway]
-   [com.zaxxer.hikari HikariDataSource]))
-
-(defn run-migrations [datasource]
-  (log/info "Running database migrations...")
-
-  (.migrate
-   (.. (Flyway/configure)
-       (dataSource datasource)
-       (locations (into-array ["classpath:database/migrations"]))
-       (table "schema_version")
-       (load))))
+  (:import [com.zaxxer.hikari HikariDataSource]))
 
 (defrecord DatabaseComponent [db-spec raw-ds datasource]
   component/Lifecycle
@@ -29,7 +17,6 @@
     (if datasource
       this
       (let [^HikariDataSource ds (make-datasource db-spec)]
-        (run-migrations ds)
         (assoc this
                :raw-ds ds
                :datasource (jdbc/with-options ds {:builder-fn rs/as-unqualified-maps})))))
