@@ -1,15 +1,12 @@
 (ns nvim-app.components.pedestal.handlers
   (:require
-   ; [real-world-clojure-api.components.pedestal.schemas :refer [Todo]]
+   [nvim-app.db :as db]
+   [nvim-app.views.plugins :as views]
 
-   [io.pedestal.interceptor :as interceptor]
    [next.jdbc :as jdbc]
-   [honey.sql :as sql]
-   [cheshire.core :as json]
-   [schema.core :as s]
-
-   [clojure.tools.logging :as log]
-   [clojure.string :as str]))
+   [cheshire.core :as json]))
+   ; [schema.core :as s]
+   ; [clojure.tools.logging :as log]))
 
 (defn response
   ([status]
@@ -17,9 +14,8 @@
 
   ([status body]
    (merge
-    {:status status
-     :headers {"Content-Type" "application/json"}}
-    (when body {:body (json/encode body)}))))
+    {:status status}
+    (when body {:body body}))))
 
 (def ok (partial response 200))
 (def created (partial response 201))
@@ -37,18 +33,17 @@
 
        (assoc context :response (ok db-response))))})
 
-(def exception-handler
-  (interceptor/interceptor
-   {:name ::exception-handler
-    :error (fn [context exception]
-             (let [exception-type (-> exception class .getName)
-                   exception-message (.getMessage exception)]
+(def plugins-handler
+  {:name :plugins-handler
+   :enter
+   (fn [context]
+     (let [plugins (take 5 (db/get-plugins))
+           type (get-in context [:request :accept :field])]
 
-               (log/error :msg (str "Exception occurred: " exception-message))
+       (assoc context :response
+              #spy/y (ok (if (= type "application/json")
+                           plugins
+                           (str (views/plugins-page plugins)))))))})
 
-               (assoc context :response
-                      {:status 500
-                       :headers {"Content-Type" "application/json"}
-                       :body {:error true
-                              :exception-type exception-type
-                              :message exception-message}})))}))
+(comment
+  (views/plugins-page (take 5 (db/get-plugins))))

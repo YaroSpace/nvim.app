@@ -1,5 +1,7 @@
 (ns nvim-app.db
   (:require
+   [nvim-app.state :refer [nvim-app-system-atom]]
+
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
    [clojure.tools.logging :as log])
@@ -8,9 +10,7 @@
    [org.flywaydb.core Flyway]))
 
 (defn get-ds []
-  (require 'nvim-app.core)
-  (let [system  @(resolve 'nvim-app.core/nvim-app-system-atom)]
-    (:database-component @system)))
+  (:database-component @nvim-app-system-atom))
 
 (defn query!
   ([sql] (query! (get-ds) sql))
@@ -40,4 +40,6 @@
          (load)))))
 
 (defn get-plugins []
-  (query! {:select [:*] :from [:plugins]}))
+  (query! {:select [:* [:categories.name :category]]
+           :from   [:plugins]
+           :join   [:categories [:= :plugins.category_id :categories.id]]}))

@@ -1,13 +1,12 @@
 (ns nvim-app.core
   (:require
+   [nvim-app.state :refer [nvim-app-system-atom]]
    [nvim-app.config :as config]
    [nvim-app.components.pedestal.core :as pedestal-component]
    [nvim-app.components.database :as database-component]
 
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]))
-
-(defonce nvim-app-system-atom (atom nil))
 
 (defn nvim-database-system [config]
   (component/system-map
@@ -36,13 +35,20 @@
      (new Thread #(component/stop-system system)))))
 
 (comment
+  (require 'dev)
+  (require '[com.stuartsierra.component.repl :as repl])
+  repl/system
+
+  nvim-app-system-atom
+
   (-main)
 
   "
 ```http
 
-http://localhost:8080/info
-http://localhost:8080/todo/:todo-id
+http://localhost:8080/plugins
+Accept: text/html
+Accept: application/json
 
 ```
 ")

@@ -1,11 +1,13 @@
 (ns helpers
   (:require
-   [nvim-app.core :as core]
-   [nvim-app.components.pedestal.routes :as r]
+   [nvim-app.state :refer [nvim-app-system-atom]]
+   [nvim-app.core :refer [nvim-app-system nvim-database-system]]
    [nvim-app.db :as db]
 
+   [nvim-app.components.pedestal.routes :as r]
    [io.pedestal.http.route :as route]
    [com.stuartsierra.component :as component]
+
    [clojure.string :as string]
    [spy.reader])
 
@@ -64,7 +66,7 @@
        (.start database-container#)
        (let [~bound-var (component/start (get-system ~system database-container#))]
          (try
-           (reset! core/nvim-app-system-atom ~bound-var)
+           (reset! nvim-app-system-atom ~bound-var)
            (db/run-migrations!)
            ~@body
            (finally
@@ -74,10 +76,10 @@
 
 (defmacro with-test-system
   [bound-var & body]
-  `(with-system [~bound-var core/nvim-app-system]
+  `(with-system [~bound-var nvim-app-system]
      ~@body))
 
 (defmacro with-database-system
   [bound-var & body]
-  `(with-system [~bound-var core/nvim-database-system]
+  `(with-system [~bound-var nvim-database-system]
      ~@body))

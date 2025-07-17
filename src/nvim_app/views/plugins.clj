@@ -9,7 +9,7 @@
     [:body
      [:h1 "Plugins"]
      [:ul
-      (for [{:keys [id repo url description]} plugins]
-        [:li {:key id}
+      (for [{:keys [category repo url description]} plugins]
+        [:li {:key category}
          [:a {:href url} repo]
          [:p description]])]]]))

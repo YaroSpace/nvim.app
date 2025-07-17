@@ -1,6 +1,5 @@
 (ns nvim-app.awesome
   (:require
-   [nvim-app.core :as core]
    [nvim-app.db :as db]
 
    [clj-http.client :as http]
@@ -79,12 +78,4 @@
     (upsert-plugin!  plugin)))
 
 (comment
-  (require 'dev)
-  (require '[com.stuartsierra.component.repl :as repl])
-  repl/system
-
-  @core/nvim-app-system-atom
-
-  (upsert-plugins! (parse-readme (fetch-readme)))
-  (get-plugins))
-
+  (upsert-plugins! (parse-readme (fetch-readme))))
