@@ -37,7 +37,7 @@
   {:name :plugins-handler
    :enter
    (fn [context]
-     (let [plugins (take 5 (db/get-plugins))
+     (let [plugins (take 50 (db/get-plugins))
            type (get-in context [:request :accept :field])]
 
        (assoc context :response

@@ -18,6 +18,13 @@
 (def content-negotiation-interceptor
   (content-negotiation/negotiate-content supported-types))
 
+(def csp-interceptor
+  (interceptor/interceptor
+   {:name ::csp
+    :leave (fn [context]
+             (update-in context [:response :headers]
+                        merge {"Content-Security-Policy" "default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'"}))}))
+
 (defn accepted-type
   [context]
   (get-in context [:request :accept :field] "text/plain"))
@@ -84,7 +91,8 @@
                           concat [exception-interceptor
                                   (get-inject-dependencies-interceptor component)
                                   coerce-body-interceptor
-                                  content-negotiation-interceptor])
+                                  content-negotiation-interceptor
+                                  csp-interceptor])
 
                   (http/create-server)
                   (http/start))]
