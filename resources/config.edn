@@ -1,1 +1,8 @@
-{:server {:port #long #or [#env NVIM_APP_PORT 8080]}}
+{:server  {:port #long #or [#env NVIM_APP_PORT 8080]
+           :host #or [#env NVIM_APP_HOST "localhost"]}
+
+ :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
+           :username #or [#env DATABASE_USER "nvim"]
+           :password #or [#env DATABASE_PASSWORD "nvim"]}
+
+ :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]}}

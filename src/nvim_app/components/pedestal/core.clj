@@ -14,6 +14,8 @@
                       "application/edn"
                       "application/json"
                       "text/plain"])
+(def CSP-policy
+  "default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'")
 
 (def content-negotiation-interceptor
   (content-negotiation/negotiate-content supported-types))
@@ -23,7 +25,7 @@
    {:name ::csp
     :leave (fn [context]
              (update-in context [:response :headers]
-                        merge {"Content-Security-Policy" "default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'"}))}))
+                        merge {"Content-Security-Policy" CSP-policy}))}))
 
 (defn accepted-type
   [context]
@@ -77,34 +79,34 @@
 (defrecord PedestalComponent [config]
   component/Lifecycle
 
-  (start [component]
+  (start [this]
     (log/info "Starting PedestalComponent")
 
     (let [server (->
                   {::http/routes r/routes
                    ::http/type :jetty
                    ::http/port (-> config :server :port)
+                   ::http/host (-> config :server :host)
                    ::http/join? false}
-
                   (http/default-interceptors)
                   (update ::http/interceptors
                           concat [exception-interceptor
-                                  (get-inject-dependencies-interceptor component)
+                                  (get-inject-dependencies-interceptor this)
                                   coerce-body-interceptor
                                   content-negotiation-interceptor
                                   csp-interceptor])
 
                   (http/create-server)
                   (http/start))]
-      (assoc component ::server server)))
+      (assoc this ::server server)))
 
-  (stop [component]
+  (stop [this]
     (log/info "Stopping PedestalComponent")
 
-    (when-let [server (::server component)]
+    (when-let [server (::server this)]
       (http/stop server)
-      (assoc component ::server nil))))
+      (assoc this ::server nil))))
 
 (defn new-pedestal-component
   [config]
-  (map->PedestalComponent {:config config}))
+  (->PedestalComponent {:server (:server config)}))

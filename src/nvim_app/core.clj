@@ -1,12 +1,25 @@
 (ns nvim-app.core
+  (:gen-class)
   (:require
-   [nvim-app.state :refer [nvim-app-system-atom]]
+   [nvim-app.state :refer [nvim-app-system-atom repl-server-atom]]
    [nvim-app.config :as config]
+   [nvim-app.db :as db]
+   [nvim-app.awesome :as awesome]
+
    [nvim-app.components.pedestal.core :as pedestal-component]
    [nvim-app.components.database :as database-component]
-
    [com.stuartsierra.component :as component]
-   [clojure.tools.logging :as log]))
+
+   [clojure.tools.logging :as log]
+   [nrepl.server :as nrepl]))
+
+(defn start-repl! []
+  (when-not @repl-server-atom
+    (let [port (:port (:repl (config/read-config)))
+          repl (nrepl/start-server :bind "0.0.0.0" :port port)]
+
+      (reset! repl-server-atom repl)
+      (log/info (str "Starting REPL server on port: " (:server-socket repl))))))
 
 (defn nvim-database-system [config]
   (component/system-map
@@ -28,20 +41,28 @@
                    (component/start-system))]
 
     (reset! nvim-app-system-atom system)
-    (log/info "Starting nvim-app...")
+
+    (log/info (str "Starting nvim-app on port: "
+                   (-> system :pedestal-component :config :server :port)))
+    (log/info (str "Starting database on: "
+                   (-> system :database-component :db-spec :jdbc-url)))
+
+    (when (db/db-empty?)
+      (db/run-migrations!)
+      (awesome/update-plugins!))
+
+    (start-repl!)
 
     (.addShutdownHook
      (Runtime/getRuntime)
      (new Thread #(component/stop-system system)))))
 
 (comment
-  (require 'dev)
-  (require '[com.stuartsierra.component.repl :as repl])
-  repl/system
-
-  nvim-app-system-atom
-
   (-main)
+  (component/stop-system @nvim-app-system-atom)
+  (start-repl!)
+  (nrepl/stop-server @repl-server-atom)
+  (reset! repl-server-atom nil)
 
   "
 ```http
