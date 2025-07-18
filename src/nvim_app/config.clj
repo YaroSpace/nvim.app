@@ -27,6 +27,6 @@
       (aero/read-config)))
 
 (comment
-  (System/getenv "HOME")
+  (System/getenv "DATABASE_URL")
   (read-config))
 

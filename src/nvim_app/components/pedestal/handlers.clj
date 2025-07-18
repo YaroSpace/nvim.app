@@ -41,9 +41,9 @@
            type (get-in context [:request :accept :field])]
 
        (assoc context :response
-              #spy/y (ok (if (= type "application/json")
-                           plugins
-                           (str (views/plugins-page plugins)))))))})
+              (ok (if (= type "application/json")
+                    plugins
+                    (str (views/plugins-page plugins)))))))})
 
 (comment
   (views/plugins-page (take 5 (db/get-plugins))))

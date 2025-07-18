@@ -24,11 +24,12 @@
   (let [res (component-repl/reset)
         system component-repl/system]
     (reset! nvim-app-system-atom system)
-    (db/run-migrations!)
+    (when (db/db-empty?)
+      (db/run-migrations!))
     res))
 
 (comment
-  (reset)
+  (component-repl/stop)
   (reset! nvim-app-system-atom component-repl/system)
   (println (System/identityHashCode nvim-app-system-atom)))
 

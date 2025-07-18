@@ -1,6 +1,5 @@
 {:deps {aero/aero                               {:mvn/version "1.1.6"}
         com.stuartsierra/component              {:mvn/version "1.1.0"}
-        com.stuartsierra/component.repl         {:mvn/version "0.2.0"}
         io.pedestal/pedestal.jetty              {:mvn/version "0.7.2"}
         prismatic/schema                        {:mvn/version "1.4.1"}
         com.github.seancorfield/honeysql        {:mvn/version "2.7.1310"}
@@ -9,30 +8,47 @@
         org.flywaydb/flyway-core                {:mvn/version "11.10.0"}
         org.flywaydb/flyway-database-postgresql {:mvn/version "11.10.0"}
         hikari-cp/hikari-cp                     {:mvn/version "3.2.0"}
-        clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
-        org.testcontainers/postgresql           {:mvn/version "1.19.3"}
         hiccup/hiccup                           {:mvn/version "2.0.0"}
         clj-http/clj-http                       {:mvn/version "3.13.1"}
         metosin/malli                           {:mvn/version "0.19.1"}
-        org.clojure/tools.logging               {:mvn/version "1.3.0"}}
+        org.clojure/tools.logging               {:mvn/version "1.3.0"}
+        nrepl/nrepl                             {:mvn/version "1.3.1"}
+        ch.qos.logback/logback-classic          {:mvn/version "1.5.18"}}
 
  :paths ["src" "resources"]
 
- :aliases {:repl
+ :aliases {:nrebel
            {:extra-paths ["dev" "dev/resources" "test"]
-            :extra-deps {nrepl/nrepl                    {:mvn/version "1.3.1"}
-                         cider/cider-nrepl              {:mvn/version "0.56.0"}
-                         com.bhauman/rebel-readline     {:mvn/version "0.1.5"}
-                         djblue/portal                  {:mvn/version "0.59.1"}   ; portal data inspector
-                         org.clojure/tools.namespace    {:mvn/version "1.5.0"}
-                         org.clojure/tools.trace        {:mvn/version "0.8.0"}
-                         lambdaisland/kaocha            {:mvn/version "1.91.1392"}
-                         org.clojure/test.check         {:mvn/version "1.1.1"}
-                         ch.qos.logback/logback-classic {:mvn/version "1.5.18"}}
+            :extra-deps {com.bhauman/rebel-readline-nrepl {:mvn/version "0.1.6"}
+                         cider/cider-nrepl                {:mvn/version "0.56.0"}
+                         com.stuartsierra/component.repl  {:mvn/version "0.2.0"}
+                         org.clojure/tools.namespace      {:mvn/version "1.5.0"}
+                         org.clojure/tools.trace          {:mvn/version "0.8.0"}
+                         djblue/portal                    {:mvn/version "0.59.1"}}   ; portal data inspector }
+
+            :exec-fn rebel-readline.nrepl/connect
+            :exec-args {:background-print false} ;; Optional configuration parameters
+            :main-opts ["--eval" "(apply require clojure.main/repl-requires)"
+                        "-m" "rebel-readline.nrepl.main"]}
+
+           :repl
+           {:extra-paths ["dev" "dev/resources" "test"]
+            :extra-deps {nrepl/nrepl                                    {:mvn/version "1.3.1"}
+                         com.bhauman/rebel-readline                     {:mvn/version "0.1.5"}
+                         cider/cider-nrepl                              {:mvn/version "0.56.0"}
+                         com.stuartsierra/component.repl                {:mvn/version "0.2.0"}
+                         org.clojure/tools.namespace                    {:mvn/version "1.5.0"}
+                         org.clojure/tools.trace                        {:mvn/version "0.8.0"}
+                         clj-test-containers/clj-test-containers        {:mvn/version "0.7.4"}
+                         org.testcontainers/postgresql                  {:mvn/version "1.19.3"}
+                         org.clojure/test.check                         {:mvn/version "1.1.1"}
+                         djblue/portal                                  {:mvn/version "0.59.1"}}   ; portal data inspector
 
             :main-opts ["--eval" "(apply require clojure.main/repl-requires)"
                         "--main" "nrepl.cmdline"
-                        "--middleware" "[cider.nrepl/cider-middleware]"
                         "--middleware" "[cider.nrepl/cider-middleware,portal.nrepl/wrap-portal]"
                         "--interactive"
-                        "-f" "rebel-readline.main/-main"]}}}
+                        "-f" "rebel-readline.main/-main"]}
+
+           :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.9"}}
+                   :ns-default build}}}

@@ -77,5 +77,9 @@
   (doseq [plugin plugins]
     (upsert-plugin!  plugin)))
 
+(defn update-plugins! []
+  (upsert-plugins! (parse-readme (fetch-readme)))
+  (log/info "Updating plugins from awesome-neovim README..."))
+
 (comment
   (upsert-plugins! (parse-readme (fetch-readme))))

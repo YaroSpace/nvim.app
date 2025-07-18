@@ -43,9 +43,10 @@
 (defn send-to-repl [data port]
   (with-open [conn (nrepl/connect :port port)]
     (let [client (nrepl/client conn 1000)]
-      (first (nrepl/message client {:op data})))))
+      (first (nrepl/message client data)))))
 
 (comment
   (discover-test-namespaces)
   (refresh-and-test)
+  (send-to-repl {:code "(+ 1 2)" :ns "user" :op "eval"} 7000)
   (set-log-level "com.zaxxer.hikari" :warn))

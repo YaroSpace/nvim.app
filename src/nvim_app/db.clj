@@ -30,14 +30,13 @@
                          [:not= :table_name "schema_version"]]}))))
 
 (defn run-migrations! []
-  (when (db-empty?)
-    (log/info "Running database migrations...")
-    (.migrate
-     (.. (Flyway/configure)
-         (dataSource (:raw-ds (get-ds)))
-         (locations (into-array ["classpath:database/migrations"]))
-         (table "schema_version")
-         (load)))))
+  (log/info "Running database migrations...")
+  (.migrate
+   (.. (Flyway/configure)
+       (dataSource (:raw-ds (get-ds)))
+       (locations (into-array ["classpath:database/migrations"]))
+       (table "schema_version")
+       (load))))
 
 (defn get-plugins []
   (query! {:select [:* [:categories.name :category]]
