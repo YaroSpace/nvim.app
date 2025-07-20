@@ -76,28 +76,29 @@
     :enter (fn [context]
              (assoc context :dependencies component))}))
 
+(defn service-map [config]
+  {::http/routes r/routes
+   ::http/type :jetty
+   ::http/port (-> config :server :port)
+   ::http/host (-> config :server :host)
+   ::http/join? false})
+
 (defrecord PedestalComponent [config]
   component/Lifecycle
 
   (start [this]
-    (log/info "Starting PedestalComponent")
+    (log/info (str "Starting nvim-app on port: " (-> config :server :port)))
+    (let [server (-> (service-map config)
+                     (http/default-interceptors)
+                     (update ::http/interceptors
+                             concat [exception-interceptor
+                                     (get-inject-dependencies-interceptor this)
+                                     coerce-body-interceptor
+                                     content-negotiation-interceptor
+                                     csp-interceptor])
 
-    (let [server (->
-                  {::http/routes r/routes
-                   ::http/type :jetty
-                   ::http/port (-> config :server :port)
-                   ::http/host (-> config :server :host)
-                   ::http/join? false}
-                  (http/default-interceptors)
-                  (update ::http/interceptors
-                          concat [exception-interceptor
-                                  (get-inject-dependencies-interceptor this)
-                                  coerce-body-interceptor
-                                  content-negotiation-interceptor
-                                  csp-interceptor])
-
-                  (http/create-server)
-                  (http/start))]
+                     (http/create-server)
+                     (http/start))]
       (assoc this ::server server)))
 
   (stop [this]

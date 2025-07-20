@@ -5,4 +5,6 @@
            :username #or [#env DATABASE_USER "nvim"]
            :password #or [#env DATABASE_PASSWORD "nvim"]}
 
- :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]}}
+ :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
+           :enable #or [#env NVIM_APP_REPL_ENABLE false]}
+ :sched   {:awesome-interval 8}} ; hours

@@ -12,7 +12,7 @@
   component/Lifecycle
 
   (start [this]
-    (log/info "Starting DatabaseComponent")
+    (log/info (str "Starting database on: " (:jdbc-url db-spec)))
 
     (if datasource
       this
