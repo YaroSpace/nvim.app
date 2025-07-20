@@ -1,2 +1,6 @@
 target/*
 !target/*.jar
+
+.todo.md
+docker-compose.override.yaml
+notes.md

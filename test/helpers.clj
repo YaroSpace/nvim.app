@@ -2,7 +2,7 @@
   (:require
    [nvim-app.state :refer [nvim-app-system-atom]]
    [nvim-app.core :refer [nvim-app-system nvim-database-system]]
-   [nvim-app.db :as db]
+   [nvim-app.db.core :as db]
 
    [nvim-app.components.pedestal.routes :as r]
    [io.pedestal.http.route :as route]
@@ -83,3 +83,15 @@
   [bound-var & body]
   `(with-system [~bound-var nvim-database-system]
      ~@body))
+
+(defn test-handler
+  ([handler params]
+   (test-handler handler params "application/json"))
+
+  ([handler params content-type]
+   (let [context {:request {:accept {:field content-type}
+                            :query-params params}}]
+     (-> context
+         ((:enter handler))
+         :response
+         :body))))

@@ -1,7 +1,8 @@
 (ns persistance.nvim-app.awesome-test
   (:require
    [nvim-app.awesome :as awesome]
-   [nvim-app.db :as db]
+   [nvim-app.db.core :as db]
+   [nvim-app.db.plugin :as plugin]
 
    [clojure.test :refer :all]
    [helpers :as h]))
@@ -52,7 +53,7 @@
                   :repo "new/repo"
                   :url "http://example.com/new/repo"
                   :description "A new plugin"}
-                 (last (db/get-plugins)))))
+                 (last (plugin/get-plugins)))))
 
         (testing "Updating a plugin"
           (awesome/upsert-plugin! (assoc plugin :description "New description"))
@@ -62,5 +63,5 @@
                   :repo "new/repo"
                   :url "http://example.com/new/repo"
                   :description "New description"}
-                 (last (db/get-plugins)))))))))
+                 (last (plugin/get-plugins)))))))))
 

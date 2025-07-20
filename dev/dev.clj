@@ -2,7 +2,7 @@
   (:require
    [nvim-app.state :refer [nvim-app-system-atom]]
    [nvim-app.core :refer [nvim-app-system]]
-   [nvim-app.db :as db]
+   [nvim-app.db.core :as db]
 
    [com.stuartsierra.component.repl :as component-repl]
    [clojure.tools.namespace.repl :as repl]))
@@ -17,7 +17,7 @@
 (component-repl/set-init
  (fn [_]
    (nvim-app-system
-    {:server {:port 8080}
+    {:server {:port 6080}
      :db-spec dev-db-spec})))
 
 (defn reset []

@@ -1,6 +1,6 @@
 (ns nvim-app.awesome
   (:require
-   [nvim-app.db :as db]
+   [nvim-app.db.core :as db]
 
    [clj-http.client :as http]
    [clojure.string :as str]

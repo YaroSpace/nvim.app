@@ -3,7 +3,7 @@
   (:require
    [nvim-app.state :refer [nvim-app-system-atom]]
    [nvim-app.config :as config]
-   [nvim-app.db :as db]
+   [nvim-app.db.core :as db]
    [nvim-app.awesome :as awesome]
 
    [nvim-app.components.pedestal.core :as pedestal-component]
@@ -44,11 +44,12 @@
 (comment
   (-main)
   (component/stop-system @nvim-app-system-atom)
-
+  (require '[portal.api :as inspect])
+  (add-tap #'inspect/submit)
   "
 ```http
 
-http://localhost:8080/plugins
+http://localhost:6080/plugins-page?page=1&limit=2
 Accept: text/html
 Accept: application/json
 

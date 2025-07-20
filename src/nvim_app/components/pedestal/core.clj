@@ -1,21 +1,27 @@
 (ns nvim-app.components.pedestal.core
   (:require
    [nvim-app.components.pedestal.routes :as r]
-
    [com.stuartsierra.component :as component]
    [io.pedestal.http :as http]
    [io.pedestal.interceptor :as interceptor]
    [io.pedestal.http.content-negotiation :as content-negotiation]
    [cheshire.core :as json]
-
-   [clojure.tools.logging :as log]))
+   [clojure.tools.logging :as log]
+   [clojure.string :as str]))
 
 (def supported-types ["text/html"
                       "application/edn"
                       "application/json"
                       "text/plain"])
 (def CSP-policy
-  "default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'")
+  (str/join " "
+            ["default-src 'self';"
+             (str/join " " ["script-src 'self'"
+                            "https://cdn.tailwindcss.com"
+                            "https://github.com"
+                            "https://github.githubassets.com"
+                            "https://cdn.jsdelivr.net;"])
+             "style-src 'self' 'unsafe-inline'"]))
 
 (def content-negotiation-interceptor
   (content-negotiation/negotiate-content supported-types))
@@ -63,6 +69,7 @@
 
                (log/error :msg (str "Exception occurred: " exception-message))
 
+               (tap> exception)
                (assoc context :response
                       {:status 500
                        :body {:error true
@@ -78,6 +85,7 @@
 
 (defn service-map [config]
   {::http/routes r/routes
+   ::http/resource-path "/public"
    ::http/type :jetty
    ::http/port (-> config :server :port)
    ::http/host (-> config :server :host)

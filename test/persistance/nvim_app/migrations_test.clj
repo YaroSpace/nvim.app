@@ -2,6 +2,7 @@
   (:require
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
+   [nvim-app.db.core :as db]
 
    [clojure.test :refer :all]
    [helpers :as h]))
@@ -10,9 +11,8 @@
   (testing "Testing database migrations"
     #_{:clj-kondo/ignore [:unresolved-symbol]}
     (h/with-database-system sut
-      (let [{:keys [database-component]} sut
-            [schema-version :as schema-versions]
-            (jdbc/execute! database-component (sql/format {:select :* :from :schema_version}))]
+      (let [[schema-version :as schema-versions]
+            (db/query! {:select :* :from :schema_version})]
 
         (is (= {:description "add tables"
                 :script "V1__add_tables.sql"
