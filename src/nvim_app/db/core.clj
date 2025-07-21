@@ -1,6 +1,6 @@
 (ns nvim-app.db.core
   (:require
-   [nvim-app.state :refer [nvim-app-system-atom]]
+   [nvim-app.state :refer [app-system-atom]]
 
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
@@ -10,7 +10,7 @@
    [org.flywaydb.core Flyway]))
 
 (defn get-ds []
-  (:database-component @nvim-app-system-atom))
+  (:database-component @app-system-atom))
 
 (defn query!
   ([sql] (query! (get-ds) sql))

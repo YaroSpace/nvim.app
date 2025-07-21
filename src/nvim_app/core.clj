@@ -1,11 +1,8 @@
 (ns nvim-app.core
   (:gen-class)
   (:require
-   [nvim-app.state :refer [nvim-app-system-atom]]
    [nvim-app.config :as config]
-   [nvim-app.db.core :as db]
-   [nvim-app.awesome :as awesome]
-
+   [nvim-app.components.app :as app]
    [nvim-app.components.pedestal.core :as pedestal-component]
    [nvim-app.components.database :as database-component]
    [nvim-app.components.repl :as repl-component]
@@ -17,13 +14,11 @@
 
 (defn nvim-app-system [config]
   (component/system-map
-   :repl (repl-component/new-repl-component config)
+   :repl (repl-component/new config)
    :database-component (database-component/new config)
-
-   :pedestal-component
-   (component/using
-    (pedestal-component/new-pedestal-component config)
-    [:database-component :repl])))
+   :pedestal-component (pedestal-component/new config)
+   :app (component/using (app/->App)
+                         [:database-component :pedestal-component :repl])))
 
 (defn -main []
   (let [system (-> (config/read-config)
@@ -31,21 +26,14 @@
                    (nvim-app-system)
                    (component/start-system))]
 
-    (reset! nvim-app-system-atom system)
-
-    (when (db/db-empty?)
-      (db/run-migrations!)
-      (awesome/update-plugins!))
-
     (.addShutdownHook
      (Runtime/getRuntime)
      (new Thread #(component/stop-system system)))))
 
 (comment
   (-main)
-  (component/stop-system @nvim-app-system-atom)
-  (require '[portal.api :as inspect])
-  (add-tap #'inspect/submit)
+  ; (require '[portal.api :as inspect])
+  ; (add-tap #'inspect/submit)
   "
 ```http
 

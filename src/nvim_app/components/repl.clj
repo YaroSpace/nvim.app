@@ -23,5 +23,5 @@
       (nrepl/stop-server server)
       (assoc this :server nil))))
 
-(defn new-repl-component [config]
+(defn new [config]
   (map->ReplComponent (:repl config)))

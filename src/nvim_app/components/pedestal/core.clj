@@ -16,10 +16,9 @@
 (def CSP-policy
   (str/join " "
             ["default-src 'self';"
-             (str/join " " ["script-src 'self'"
+             (str/join " " ["script-src 'self' 'unsafe-inline'"
                             "https://cdn.tailwindcss.com"
-                            "https://github.com"
-                            "https://github.githubassets.com"
+                            "https://github.com" "https://github.githubassets.com"
                             "https://cdn.jsdelivr.net;"])
              "style-src 'self' 'unsafe-inline'"]))
 
@@ -95,7 +94,7 @@
   component/Lifecycle
 
   (start [this]
-    (log/info (str "Starting nvim-app on port: " (-> config :server :port)))
+    (log/info (str "Starting Pedestal component on port: " (-> config :server :port)))
     (let [server (-> (service-map config)
                      (http/default-interceptors)
                      (update ::http/interceptors
@@ -116,6 +115,6 @@
       (http/stop server)
       (assoc this ::server nil))))
 
-(defn new-pedestal-component
+(defn new
   [config]
   (->PedestalComponent {:server (:server config)}))

@@ -6,7 +6,8 @@
    [hikari-cp.core :refer [make-datasource]]
    [clojure.tools.logging :as log])
 
-  (:import [com.zaxxer.hikari HikariDataSource]))
+  (:import
+   [com.zaxxer.hikari HikariDataSource]))
 
 (defrecord DatabaseComponent [db-spec raw-ds datasource]
   component/Lifecycle

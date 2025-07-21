@@ -13,3 +13,6 @@ run:
 
 db:
 	docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d database
+
+sync:
+	 browser-sync start --proxy localhost:6080 -f src

@@ -1,8 +1,6 @@
 (ns helpers
   (:require
-   [nvim-app.state :refer [nvim-app-system-atom]]
    [nvim-app.core :refer [nvim-app-system nvim-database-system]]
-   [nvim-app.db.core :as db]
 
    [nvim-app.components.pedestal.routes :as r]
    [io.pedestal.http.route :as route]
@@ -66,8 +64,6 @@
        (.start database-container#)
        (let [~bound-var (component/start (get-system ~system database-container#))]
          (try
-           (reset! nvim-app-system-atom ~bound-var)
-           (db/run-migrations!)
            ~@body
            (finally
              (component/stop ~bound-var))))

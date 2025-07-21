@@ -7,10 +7,9 @@
 (defn search-form [url]
   [:form {:class "flex items-center gap-2 mb-2"
           :hx-get (u/url url)
-          :hx-target "#plugins-list"
-          :hx-include "#limit-input"
           :hx-trigger "keyup changed delay:300ms from:input[name='q']"
-          :_ "on submit trigger htmx:beforeRequest"}
+          :_ "on submit trigger htmx:beforeRequest"
+          :hx-target "#plugins-list" :hx-include "#limit-input"}
 
    [:input {:id "query-input"
             :class "px-2 py-2 mr-1"
@@ -22,12 +21,16 @@
 (defn plugins []
   (base-layout
    [:div {:class "p-6 max-w-2xl mx-auto"}
-    [:h1 {:class "text-3xl font-bold mb-6"} "The Neovim Plugins Catalog"]
+    [:div {:class "flex items-center space-x-4"}
+     [:h1 {:class "text-3xl font-bold"} "The Neovim Plugins Catalog"]
+     [:img {:id "indicator" :class "htmx-indicator" :src "/images/loader.svg"}]]
+
     (search-form "/plugins-page")
+
     [:div {:id "plugins-list"
            :hx-get (u/url "/plugins-page" {:page 1 :limit 10})
-           :hx-trigger "load"
-           :hx-target "#plugins-list"}
+           :hx-trigger "load" :hx-target "#plugins-list"
+           :hx-indicator "#indicator"}
      "Loading plugins..."]]))
 
 (defn navigation [url page limit total]
@@ -40,21 +43,22 @@
             :class "border rounded px-2 py-2 mr-1" :style "width: 5rem;"
             :type "number" :name "limit" :value limit :min 1
             :placeholder "Results per page"
-            :hx-get (u/url url {:page  page})
-            :hx-include "#query-input"
-            :hx-target "#plugins-list"
-            :hx-trigger "keyup changed delay:300ms"}]
+            :hx-get (u/url url {:page  page}) :hx-include "#query-input"
+            :hx-trigger "keyup changed delay:300ms" :hx-target "#plugins-list"
+            :hx-indicator "#indicator"}]
 
    [:button {:class "px-2 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
              :hx-get (u/url url {:page (max 1 (dec page))})
              :hx-include "#query-input, #limit-input"
              :hx-target "#plugins-list"
+             :hx-indicator "#indicator"
              :disabled (<= page 1)} "previous"]
 
    [:button {:class "px-2 py-2 bg-blue-500 text-white rounded"
              :hx-get (u/url url {:page (min total (inc page))})
              :hx-include "#query-input, #limit-input"
              :hx-target "#plugins-list"
+             :hx-indicator "#indicator"
              :disabled (>= page total)} "next"]))
 
 (defn plugins-page [plugins page limit total]

@@ -1,10 +1,9 @@
 (ns nvim-app.awesome
-  (:require
-   [nvim-app.db.core :as db]
+  (:require [nvim-app.db.plugin :as plugin]
 
-   [clj-http.client :as http]
-   [clojure.string :as str]
-   [clojure.tools.logging :as log]))
+            [clj-http.client :as http]
+            [clojure.string :as str]
+            [clojure.tools.logging :as log]))
 
 (def url "https://raw.githubusercontent.com/rockerBOO/awesome-neovim/refs/heads/main/README.md")
 (def repo-re #"^- \[(.*?)\]\((.*?)\) - (.*)")
@@ -43,43 +42,9 @@
                       {:status (:status resp)
                        :error (:error resp)})))))
 
-(defn get-or-create-category-id [category]
-  (let [result (db/query-one! {:select :id
-                               :from :categories
-                               :where [:= :name category]})]
-    (if (seq result)
-      (:id result)
-      (let [res (db/query-one! {:insert-into :categories
-                                :columns [:name]
-                                :values [[category]]
-                                :returning :id})]
-        (:id res)))))
-
-(defn upsert-plugin! [{:keys [category repo url description]}]
-  (let [category-id (get-or-create-category-id category)
-        existing (db/query-one! {:select [:id]
-                                 :from [:plugins]
-                                 :where [:and
-                                         [:= :repo repo]
-                                         [:= :url url]]})]
-    (if (seq existing)
-      (db/query! {:update :plugins
-                  :set {:description description
-                        :category_id category-id}
-                  :where [:= :id (:id existing)]
-                  :returning :*})
-      (db/query! {:insert-into :plugins
-                  :columns [:category_id :repo :url :description]
-                  :values [[category-id repo url description]]
-                  :returning :*}))))
-
-(defn upsert-plugins! [plugins]
-  (doseq [plugin plugins]
-    (upsert-plugin!  plugin)))
-
 (defn update-plugins! []
-  (upsert-plugins! (parse-readme (fetch-readme)))
+  (plugin/upsert-plugins! (parse-readme (fetch-readme)))
   (log/info "Updating plugins from awesome-neovim README..."))
 
 (comment
-  (upsert-plugins! (parse-readme (fetch-readme))))
+  (plugin/upsert-plugins! (parse-readme (fetch-readme))))
