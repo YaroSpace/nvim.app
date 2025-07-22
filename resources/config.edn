@@ -1,10 +1,18 @@
-{:server  {:port #long #or [#env NVIM_APP_PORT 8080]
+{:secrets #include "../dev/.secrets.edn"
+
+ :server  {:port #long #or [#env NVIM_APP_PORT 6080]
            :host #or [#env NVIM_APP_HOST "localhost"]}
 
  :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
            :username #or [#env DATABASE_USER "nvim"]
-           :password #or [#env DATABASE_PASSWORD "nvim"]}
+           :password #or [#env DATABASE_PASSWORD "nvim"]
+           :logging? #profile {:default false :dev true}}
 
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
-           :enable #or [#env NVIM_APP_REPL_ENABLE false]}
- :sched   {:awesome-interval 8}} ; hours
+           :enable #or [#env NVIM_APP_REPL_ENABLE true]}
+ :sched   {:awesome-interval 8} ; hours
+ :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]}
+ :app     {:update-plugins? #profile {:default true :dev false}
+           :update-github-data? #profile {:default true :dev false}}}
+
+

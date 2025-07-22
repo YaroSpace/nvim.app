@@ -3,10 +3,8 @@
    [nvim-app.db.plugin :as plugin]
    [nvim-app.views.plugins :as views]
 
-   [next.jdbc :as jdbc]
-   [cheshire.core :as json]))
+   [next.jdbc :as jdbc]))
    ; [schema.core :as s]
-   ; [clojure.tools.logging :as log]))
 
 (defn response
   ([status]
@@ -39,16 +37,18 @@
      (let [type (get-in context [:request :accept :field])
            params (-> context :request :query-params)
            query  (:q params)
+           sort  (:sort params)
            page   (Integer/parseInt (get-in params [:page] "1"))
            limit  (Integer/parseInt (get-in params [:limit] "10"))
            offset (* (dec page) limit)
-           matched (plugin/search-trm-plugins query offset limit)
-           total  (int (Math/ceil (/ (count matched) limit)))]
+
+           matched (plugin/search-trm-plugins query sort offset limit)
+           total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
 
        (assoc context :response
               (ok (if (= type "application/json")
                     matched
-                    (views/plugins-page matched page limit total))))))})
+                    (views/plugins-page matched sort page limit total))))))})
 
 #_(def plugins-page-handler
     "In memory filtering"

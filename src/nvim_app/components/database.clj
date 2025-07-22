@@ -1,26 +1,44 @@
 (ns nvim-app.components.database
   (:require
+   [nvim-app.db.core :as db]
    [com.stuartsierra.component :as component]
    [next.jdbc :as jdbc]
    [next.jdbc.result-set :as rs]
    [hikari-cp.core :refer [make-datasource]]
    [clojure.tools.logging :as log])
-
   (:import
+   [java.time LocalTime]
+   [java.time.format  DateTimeFormatter]
    [com.zaxxer.hikari HikariDataSource]))
 
-(defrecord DatabaseComponent [db-spec raw-ds datasource]
+(defn db-logger
+  ([_ params]
+   (let [formatter (DateTimeFormatter/ofPattern "HH:mm:ss")]
+     (log/info (str (.format (LocalTime/now) formatter) ": " params))
+     (System/currentTimeMillis)))
+
+  ([_ state result]
+   (let [out (if (map? result) result (count result))]
+     (log/info "Duration: " (/ (- (System/currentTimeMillis) state) 1000) "(s):  => " out))))
+
+(defrecord DatabaseComponent [config raw-ds datasource]
   component/Lifecycle
 
   (start [this]
-    (log/info (str "Starting database on: " (:jdbc-url db-spec)))
+    (log/info (str "Starting database on: " (:jdbc-url config)))
 
     (if datasource
       this
-      (let [^HikariDataSource ds (make-datasource db-spec)]
+      (let [^HikariDataSource ds (make-datasource config)
+            ds-with-opts (jdbc/with-options ds {:builder-fn rs/as-unqualified-maps})]
+
+        (db/run-migrations! {:datasource ds})
+        (db/query-one! ds [:raw "SET pg_trgm.similarity_threshold = 0.18"])
         (assoc this
                :raw-ds ds
-               :datasource (jdbc/with-options ds {:builder-fn rs/as-unqualified-maps})))))
+               :datasource (if (:logging? config)
+                             (jdbc/with-logging ds-with-opts db-logger db-logger)
+                             ds-with-opts)))))
 
   (stop [this]
     (log/info "Stopping DatabaseComponent")
@@ -29,4 +47,4 @@
     (assoc this :datasource nil)))
 
 (defn new [config]
-  (map->DatabaseComponent {:db-spec (:db-spec config)}))
+  (map->DatabaseComponent {:config (:db-spec config)}))

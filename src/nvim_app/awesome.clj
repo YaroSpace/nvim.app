@@ -1,6 +1,6 @@
 (ns nvim-app.awesome
   (:require [nvim-app.db.plugin :as plugin]
-            [clj-http.client :as http]
+            [nvim-app.utils :as utils]
             [clojure.string :as str]
             [clojure.tools.logging :as log]))
 
@@ -13,7 +13,8 @@
            category nil
            result []]
       (if (empty? lines)
-        result
+        (do (log/info "Downloaded " (count result) " plugins from awesome-neovim README.")
+            result)
         (let [line (first lines)
               next-lines (rest lines)]
           (cond
@@ -32,16 +33,20 @@
             (recur next-lines category result)))))))
 
 (defn fetch-readme []
-  (let [resp (http/get url {:as :text})]
+  (let [resp (utils/fetch-request {:method :get :url url})]
     (log/info "Downloading awesome-neovim README...")
 
     (if (= 200 (:status resp))
-      (:body resp [])
-      (log/error (str "Failed to download awesome-neovim README."
-                      {:status (:status resp)
-                       :error (:error resp)})))))
+      (:body resp)
+      (log/error "Failed to download awesome-neovim README." resp))))
+
 (defn get-plugins []
   (parse-readme (fetch-readme)))
 
 (comment
-  (plugin/upsert-plugins! (parse-readme (fetch-readme))))
+  (re-matches #"https://[^/].+/(.+/.+)$" "https://git.sr.ht/~whynothugo/lsp_lines.nvim")
+  (last (str/split "https://github.com/zaldih/themery.nvim" #"/"))
+  (plugin/upsert-plugins! (parse-readme (fetch-readme)))
+
+  (def repo-re #"^- \[(.*?)\]\((.*?)\) - (.*)")
+  (re-matches repo-re "https://github.com/you-n-g/simplegpt.nvim"))

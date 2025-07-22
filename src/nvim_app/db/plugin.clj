@@ -5,17 +5,31 @@
    [honey.sql.pg-ops :refer [atat]]
    [clojure.string :as str]))
 
+(defn plugins-count []
+  (:count (db/query-one! {:select [:%count.*] :from [:plugins]})))
+
+(defn order-by [sort]
+  (concat (if (str/blank? sort) []
+              (case sort
+                "stars" [[:stargazers :desc-nulls-last]]
+                "updated" [[:updated_at :desc-nulls-last]]
+                "created" [[:created_at :desc-nulls-last]]
+                []))
+          [[:categories.name :asc] [:repo :asc]]))
+
 (defn get-plugins
   ([]
-   (get-plugins nil nil))
-  ([offset limit]
+   (get-plugins nil nil nil))
+  ([sort offset limit]
    (db/query!
-    (cond-> {:select [:* [:plugins.id :id] [:categories.name :category]]
+    (cond-> {:select [:* [:plugins.id :id] [:categories.name :category]
+                      [(plugins-count) :total]]
              :from   [:plugins]
              :join   [:categories [:= :plugins.category_id :categories.id]]
-             :order-by [[:categories.name :asc] [:plugins.repo :asc]]}
+             :left-join [:github [:= :plugins.github_id :github.id]]
+             :order-by (order-by sort)}
       offset (assoc :offset offset)
-      limit (assoc :offset limit)))))
+      limit (assoc :limit limit)))))
 
 (defn get-or-create-category-id [category]
   (let [result (db/query-one! {:select :id
@@ -51,9 +65,6 @@
   (doseq [plugin plugins]
     (upsert-plugin!  plugin)))
 
-(defn plugins-count []
-  (:count (db/query-one! {:select [:%count.*] :from [:plugins]})))
-
 (defn search-plugins [query]
   (let [plugins (get-plugins)
         matches? #(str/includes? (str/lower-case %) (str/lower-case query))]
@@ -74,33 +85,44 @@
       :limit    limit
       :offset   offset})))
 
-(defn search-trm-plugins [q offset limit]
-  (db/query-one! [:raw  "SET pg_trgm.similarity_threshold = 0.18"])
-  (if (str/blank? q)
-    (get-plugins)
-    (db/query!
-     {:select [:plugins.id :categories.name :repo :url :description
-               [[:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]] :rank]
-               [[:similarity :description q] :sim]]
-      :from   [:plugins]
-      :join   [:categories [:= :plugins.category_id :categories.id]]
-      :where  [:or
-               [:% :repo q] [:% :description q] [:% :categories.name q]
-               [atat :tsv [:plainto_tsquery [:inline "english"] q]]]
-      :order-by [[[:greatest
-                   [:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]]
-                   [:similarity :description q]
-                   [:similarity :categories.name q]] :desc]]
-      :limit  limit
-      :offset offset})))
+(defn search-trm-plugins
+  ([]
+   (search-trm-plugins "" nil nil nil))
+  ([q sort offset limit]
+   (if (str/blank? q)
+     (get-plugins sort offset limit)
+     (let [search-query
+           {:select [:* [:categories.name :category]]
+            :from   [:plugins]
+            :join   [:categories [:= :plugins.category_id :categories.id]
+                     :github [:= :plugins.github_id :github.id]]
+            :where  [:or
+                     [:% :repo q] [:% :description q] [:% :categories.name q]
+                     [atat :tsv [:plainto_tsquery [:inline "english"] q]]
+                     [atat :topics_tsv [:plainto_tsquery [:inline "english"] q]]]}
+
+           count (db/query-one! (merge search-query {:select [:%count.*]}))]
+
+       (db/query!
+        (merge search-query
+               {:select (conj (:select search-query) [(:count count) :total])
+                :order-by (concat [[[:greatest
+                                     [:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]]
+                                     [:ts_rank :topics_tsv [:plainto_tsquery [:inline "english"] q]]
+                                     [:similarity :description q]
+                                     [:similarity :github.topics q]
+                                     [:similarity :categories.name q]] :desc]]
+                                  (order-by sort))
+                :limit limit
+                :offset offset}))))))
 
 (comment
    ; (let [q "q" offset 1 limit 1]
    ;   (sql/format))
-  (search-trm-plugins "code actions" 1 3000)
+  (search-trm-plugins "" "code actions" 1 3000)
   (db/query-one! [:raw  "SET pg_trgm.similarity_threshold = 0.20"])
   (search-plugins "")
-  (take 10 (get-plugins))
+  (get-plugins)
   (plugins-count)
   (sql/format {:select [:%count.*]  :from [:plugins]})
   (some identity [false 2]))
