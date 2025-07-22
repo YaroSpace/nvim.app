@@ -21,13 +21,12 @@
   ([ds sql] (jdbc/execute-one! ds (sql/format sql))))
 
 (defn db-empty? []
-  (not
-   (seq (query! {:select :table_name
-                 :from :information_schema.tables
-                 :where [:and
-                         [:= :table_type "BASE TABLE"]
-                         [:= :table_schema "public"]
-                         [:not= :table_name "schema_version"]]}))))
+  (empty? (query! {:select :table_name
+                   :from :information_schema.tables
+                   :where [:and
+                           [:= :table_type "BASE TABLE"]
+                           [:= :table_schema "public"]
+                           [:not= :table_name "schema_version"]]})))
 
 (defn run-migrations! []
   (log/info "Running database migrations...")
@@ -37,3 +36,10 @@
        (locations (into-array ["classpath:database/migrations"]))
        (table "schema_version")
        (load))))
+
+(defn reset!! []
+  (jdbc/execute! (get-ds) ["DROP SCHEMA public CASCADE"])
+  (jdbc/execute! (get-ds) ["CREATE SCHEMA public"]))
+
+(comment
+  (reset!!))

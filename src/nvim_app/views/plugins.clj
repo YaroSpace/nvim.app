@@ -7,9 +7,8 @@
 (defn search-form [url]
   [:form {:class "flex items-center gap-2 mb-2"
           :hx-get (u/url url)
-          :hx-trigger "keyup changed delay:300ms from:input[name='q']"
-          :_ "on submit trigger htmx:beforeRequest"
-          :hx-target "#plugins-list" :hx-include "#limit-input"}
+          :hx-trigger "submit, keyup changed delay:300ms from:input[name='q']"
+          :hx-target "#plugins-list" :hx-include "#query-input, #limit-input"}
 
    [:input {:id "query-input"
             :class "px-2 py-2 mr-1"
@@ -54,7 +53,7 @@
              :hx-indicator "#indicator"
              :disabled (<= page 1)} "previous"]
 
-   [:button {:class "px-2 py-2 bg-blue-500 text-white rounded"
+   [:button {:class "px-2 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
              :hx-get (u/url url {:page (min total (inc page))})
              :hx-include "#query-input, #limit-input"
              :hx-target "#plugins-list"

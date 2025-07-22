@@ -42,14 +42,33 @@
            page   (Integer/parseInt (get-in params [:page] "1"))
            limit  (Integer/parseInt (get-in params [:limit] "10"))
            offset (* (dec page) limit)
-           matched (plugin/search-plugins query)
-           total  (int (Math/ceil (/ (count matched) limit)))
-           plugins (->> matched (drop offset) (take limit))]
+           matched (plugin/search-trm-plugins query offset limit)
+           total  (int (Math/ceil (/ (count matched) limit)))]
 
        (assoc context :response
               (ok (if (= type "application/json")
-                    plugins
-                    (views/plugins-page plugins page limit total))))))})
+                    matched
+                    (views/plugins-page matched page limit total))))))})
+
+#_(def plugins-page-handler
+    "In memory filtering"
+    {:name :plugins-page-handler
+     :enter
+     (fn [context]
+       (let [type (get-in context [:request :accept :field])
+             params (-> context :request :query-params)
+             query  (:q params)
+             page   (Integer/parseInt (get-in params [:page] "1"))
+             limit  (Integer/parseInt (get-in params [:limit] "10"))
+             offset (* (dec page) limit)
+             matched (plugin/search-plugins query)
+             total  (int (Math/ceil (/ (count matched) limit)))
+             plugins (->> matched (drop offset) (take limit))]
+
+         (assoc context :response
+                (ok (if (= type "application/json")
+                      plugins
+                      (views/plugins-page plugins page limit total))))))})
 
 (comment
   (require '[helpers :as h])

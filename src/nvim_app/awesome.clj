@@ -1,6 +1,5 @@
 (ns nvim-app.awesome
   (:require [nvim-app.db.plugin :as plugin]
-
             [clj-http.client :as http]
             [clojure.string :as str]
             [clojure.tools.logging :as log]))
@@ -41,10 +40,8 @@
       (log/error (str "Failed to download awesome-neovim README."
                       {:status (:status resp)
                        :error (:error resp)})))))
-
-(defn update-plugins! []
-  (plugin/upsert-plugins! (parse-readme (fetch-readme)))
-  (log/info "Updating plugins from awesome-neovim README..."))
+(defn get-plugins []
+  (parse-readme (fetch-readme)))
 
 (comment
   (plugin/upsert-plugins! (parse-readme (fetch-readme))))

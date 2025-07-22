@@ -31,12 +31,13 @@
      (new Thread #(component/stop-system system)))))
 
 (comment
+  (require 'nvim-app.state)
   (-main)
   ; (require '[portal.api :as inspect])
   ; (add-tap #'inspect/submit)
+  (component/stop-system @nvim-app.state/app-system-atom)
   "
 ```http
-
 http://localhost:6080/plugins-page?page=1&limit=2
 Accept: text/html
 Accept: application/json

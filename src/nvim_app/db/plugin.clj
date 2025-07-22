@@ -2,13 +2,20 @@
   (:require
    [nvim-app.db.core :as db]
    [honey.sql :as sql]
+   [honey.sql.pg-ops :refer [atat]]
    [clojure.string :as str]))
 
-(defn get-plugins []
-  (db/query! {:select [:* [:plugins.id :id] [:categories.name :category]]
-              :from   [:plugins]
-              :join   [:categories [:= :plugins.category_id :categories.id]]
-              :order-by [[:categories.name :asc] [:plugins.repo :asc]]}))
+(defn get-plugins
+  ([]
+   (get-plugins nil nil))
+  ([offset limit]
+   (db/query!
+    (cond-> {:select [:* [:plugins.id :id] [:categories.name :category]]
+             :from   [:plugins]
+             :join   [:categories [:= :plugins.category_id :categories.id]]
+             :order-by [[:categories.name :asc] [:plugins.repo :asc]]}
+      offset (assoc :offset offset)
+      limit (assoc :offset limit)))))
 
 (defn get-or-create-category-id [category]
   (let [result (db/query-one! {:select :id
@@ -56,8 +63,43 @@
       (filter #(or (matches? (:repo %)) (matches? (:description %)))
               plugins))))
 
+(defn search-tsv-plugins [q offset limit]
+  (if (str/blank? q)
+    (get-plugins)
+    (db/query!
+     {:select   [:id :repo :description]
+      :from     [:plugins]
+      :where    [atat :tsv [:plainto_tsquery [:inline "english"] q]]
+      :order-by [[[:ts_rank_cd :tsv [:plainto_tsquery [:inline "english"] q]] :desc]]
+      :limit    limit
+      :offset   offset})))
+
+(defn search-trm-plugins [q offset limit]
+  (db/query-one! [:raw  "SET pg_trgm.similarity_threshold = 0.18"])
+  (if (str/blank? q)
+    (get-plugins)
+    (db/query!
+     {:select [:plugins.id :categories.name :repo :url :description
+               [[:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]] :rank]
+               [[:similarity :description q] :sim]]
+      :from   [:plugins]
+      :join   [:categories [:= :plugins.category_id :categories.id]]
+      :where  [:or
+               [:% :repo q] [:% :description q] [:% :categories.name q]
+               [atat :tsv [:plainto_tsquery [:inline "english"] q]]]
+      :order-by [[[:greatest
+                   [:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]]
+                   [:similarity :description q]
+                   [:similarity :categories.name q]] :desc]]
+      :limit  limit
+      :offset offset})))
+
 (comment
-  (search-plugins "dev-")
+   ; (let [q "q" offset 1 limit 1]
+   ;   (sql/format))
+  (search-trm-plugins "code actions" 1 3000)
+  (db/query-one! [:raw  "SET pg_trgm.similarity_threshold = 0.20"])
+  (search-plugins "")
   (take 10 (get-plugins))
   (plugins-count)
   (sql/format {:select [:%count.*]  :from [:plugins]})

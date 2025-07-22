@@ -15,7 +15,7 @@
           (let [repl (nrepl/start-server :bind "0.0.0.0" :port (:port config))]
             (log/info (str "Starting REPL server on port: " (:server-socket repl)))
             (assoc this :server repl))
-          {:diabled true}))))
+          {:disabled true}))))
 
   (stop [this]
     (when server

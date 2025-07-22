@@ -18,8 +18,9 @@
      :db-spec dev-db-spec})))
 
 (defn reset []
-  (let [res (component-repl/reset)]
-    res))
+  (when (seq (:app component-repl/system))
+    (component-repl/stop))
+  (component-repl/start))
 
 (comment
-  (component-repl/stop))
+  (component-repl/system))
