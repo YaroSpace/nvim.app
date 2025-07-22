@@ -4,7 +4,8 @@
    [spy.reader]
 
    [clojure.test :as test]
-   [nrepl.core :as nrepl])
+   [nrepl.core :as nrepl]
+   [clojure.string :as str])
 
   (:import
    [ch.qos.logback.classic Level]
@@ -44,6 +45,9 @@
   (with-open [conn (nrepl/connect :port port)]
     (let [client (nrepl/client conn 1000)]
       (first (nrepl/message client data)))))
+
+(defn ppn [data]
+  (map println (str/split (str data) #"\n")))
 
 (comment
   (discover-test-namespaces)

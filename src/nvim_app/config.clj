@@ -3,9 +3,7 @@
    [aero.core :as aero]
    [malli.core :as m]
    [malli.error :as me]
-
-   [clojure.java.io :as io]
-   [clojure.string :as str]))
+   [clojure.java.io :as io]))
 
 (def config-schema
   (m/schema
@@ -21,10 +19,11 @@
     config))
 
 (defn read-config
-  []
-  (-> "config.edn"
-      (io/resource)
-      (aero/read-config)))
+  ([] (read-config {:profile :default}))
+  ([opts]
+   (-> "config.edn"
+       (io/resource)
+       (aero/read-config opts))))
 
 (comment
   (System/getenv "DATABASE_URL")

@@ -17,8 +17,10 @@
    :repl (repl-component/new config)
    :database-component (database-component/new config)
    :pedestal-component (pedestal-component/new config)
-   :app (component/using (app/->App)
-                         [:database-component :pedestal-component :repl])))
+   :app (component/using (app/->App (:app config))
+                         [:repl
+                          :pedestal-component
+                          :database-component])))
 
 (defn -main []
   (let [system (-> (config/read-config)

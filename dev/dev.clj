@@ -1,26 +1,26 @@
 (ns dev
   (:require
+   [nvim-app.state :refer [app-system-atom]]
    [nvim-app.core :refer [nvim-app-system]]
+   [nvim-app.config :as config]
    [com.stuartsierra.component.repl :as component-repl]
    [clojure.tools.namespace.repl :as repl]))
 
 (repl/disable-reload! (the-ns 'nvim-app.state))
 
-(def dev-db-spec
-  {:jdbc-url "jdbc:postgresql://localhost:5432/nvim.app"
-   :username "nvim"
-   :password "nvim"})
-
 (component-repl/set-init
  (fn [_]
    (nvim-app-system
-    {:server {:port 6080}
-     :db-spec dev-db-spec})))
+    (config/read-config {:profile :dev}))))
 
 (defn reset []
-  (when (seq (:app component-repl/system))
+  (when @app-system-atom
     (component-repl/stop))
+  (repl/refresh)
   (component-repl/start))
 
 (comment
-  (component-repl/system))
+  (System/setenv "TEST" "test")
+  (:app component-repl/system)
+  (component-repl/stop)
+  (System/getProperty "GITHUB_TOKEN"))

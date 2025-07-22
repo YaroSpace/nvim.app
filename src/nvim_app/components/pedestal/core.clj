@@ -16,7 +16,7 @@
 (def CSP-policy
   (str/join " "
             ["default-src 'self';"
-             (str/join " " ["script-src 'self' 'unsafe-inline'"
+             (str/join " " ["script-src 'self' 'unsafe-inline' 'unsafe-eval'"
                             "https://cdn.tailwindcss.com"
                             "https://github.com" "https://github.githubassets.com"
                             "https://cdn.jsdelivr.net;"])
