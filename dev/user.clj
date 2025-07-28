@@ -46,8 +46,12 @@
     (let [client (nrepl/client conn 1000)]
       (first (nrepl/message client data)))))
 
-(defn ppn [data]
-  (map println (str/split (str data) #"\n")))
+(defn ppn
+  ([data]
+   (ppn "\\n" data))
+  ([sep data]
+   (doseq [line (str/split (str data) (re-pattern sep))]
+     (println line))))
 
 (comment
   (discover-test-namespaces)

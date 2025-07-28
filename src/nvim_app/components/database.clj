@@ -18,8 +18,9 @@
      (System/currentTimeMillis)))
 
   ([_ state result]
-   (let [out (if (map? result) result (count result))]
-     (log/info "Duration: " (/ (- (System/currentTimeMillis) state) 1000) "(s):  => " out))))
+   (when-not (instance? Throwable result)
+     (let [out (if (map? result) result (count result))]
+       (log/info "Duration: " (/ (- (System/currentTimeMillis) state) 1000) "(s):  => " out)))))
 
 (defrecord DatabaseComponent [config raw-ds datasource]
   component/Lifecycle

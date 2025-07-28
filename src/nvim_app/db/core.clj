@@ -27,6 +27,7 @@
      (catch Exception e
        (let [error (ex-message e)]
          (log/error "Failed to execute query: " error)
+         (tap> e)
          (throw e))))))
 
 (defn db-empty? []
@@ -60,9 +61,9 @@
   (let [config {:store :database
                 :migration-dir "database/migrations"
                 :db (:datasource (get-ds))}]
-    ; (migratus/create config "alter-plugins-table")
-    (migratus/migrate config))
-    ; (migratus/rollback config))
-    ; (migratus.core/pending-list config))
+    ; (migratus/create config "create-github2-table"))
+    ; (migratus/migrate config))
+    ; (migratus/rollback config)
+    (migratus.core/pending-list config))
 
   (reset!! (get-ds)))
