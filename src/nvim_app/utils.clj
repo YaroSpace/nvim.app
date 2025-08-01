@@ -2,7 +2,8 @@
   (:require
    [clj-http.client :as http]
    [cheshire.core :as json]
-   [clojure.tools.logging :as log]))
+   [clojure.tools.logging :as log]
+   [clojure.string :as str]))
 
 (defn json-parse
   ([data]
@@ -15,22 +16,39 @@
        (when (:verbose opts)
          (log/error (str "Failed to parse JSON: " data " - " (ex-message e))))))))
 
-(defn fetch-request [request]
+(defn fetch-request
+  "
+  Makes request using clj-http.client and returns {:status, :body, :errors, :response}.
+  Body and errors are parsed as json if possible. 
+  Errors are a merge of exception data and errors field from response body.
+  Logs error on failure.
+  "
+  [request]
+
   (try
-    (let [{:keys [status body] :as resp} (http/request request)
+    (let [{:keys [status headers body] :as resp} (http/request request)
           json (json-parse body)]
       {:status status
+       :headers headers
        :body (or json body)
-       :errors (:errors json)
+       :errors (:errors (or json body))
        :response resp})
 
     (catch Exception e
-      (let [{:keys [status reason-phrase body]} (ex-data e)
+      (let [{:keys [status reason-phrase headers body] :as response} (ex-data e)
             json (json-parse body)
             resp {:status status
-                  :errors {:message (or (:message json) (ex-message e))
+                  :errors {:message (or (get-in (or json body) [:errors :message])
+                                        (ex-message e))
                            :reason reason-phrase}
+                  :headers headers
                   :body (or json body)
-                  :request request}]
+                  :response response
+                  :request (update request
+                                   :body #(str (->> (str/split % #"\n|\\n")
+                                                    (take 2)
+                                                    (str/join "\n"))
+                                               "..."))}]
+
         (log/error (str "Failed to fetch request: " resp))
         resp))))

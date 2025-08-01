@@ -48,7 +48,7 @@
 
 (defn ppn
   ([data]
-   (ppn "\\n" data))
+   (ppn "\\n|\n" data))
   ([sep data]
    (doseq [line (str/split (str data) (re-pattern sep))]
      (println line))))

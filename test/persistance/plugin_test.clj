@@ -1,4 +1,4 @@
-(ns persistance.nvim-app.plugin-test
+(ns persistance.plugin-test
   (:require
    [nvim-app.db.core :as db]
    [nvim-app.db.plugin :as plugin]

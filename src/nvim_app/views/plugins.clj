@@ -33,6 +33,7 @@
               :hx-include "#query-input, #limit-input, #page"
               :hx-target "#plugins-list"
               :onchange "document.getElementById('sort').value = this.value;"}
+     [:option {:value "" :selected (= "" sort)} "Name ↓"]
      [:option {:value "stars" :selected (= "stars" sort)} "Stars ↓"]
      [:option {:value "updated" :selected (= "updated" sort)} "Last Update ↓"]
      [:option {:value "created" :selected (= "created" sort)} "Added ↓"]]]])

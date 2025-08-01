@@ -1,4 +1,4 @@
-(ns persistance.nvim-app.migrations-test
+(ns persistance.migrations-test
   (:require
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
@@ -8,7 +8,7 @@
    [helpers :as h]))
 
 (deftest migrations-test
-  (testing "Testing database migrations"
+  (testing "testing database migrations"
     #_{:clj-kondo/ignore [:unresolved-symbol]}
     (h/with-database-system sut
       (let [[schema-version :as schema-versions]
