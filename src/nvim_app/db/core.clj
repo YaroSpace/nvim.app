@@ -62,8 +62,8 @@
                 :migration-dir "database/migrations"
                 :db (:datasource (get-ds))}]
     ; (migratus/create config "create-github2-table"))
-    ; (migratus/migrate config))
-    ; (migratus/rollback config)
-    (migratus.core/pending-list config))
+    ; (migratus/rollback config))
+    (migratus/migrate config))
+    ; (migratus.core/pending-list config))
 
   (reset!! (get-ds)))

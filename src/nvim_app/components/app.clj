@@ -7,8 +7,8 @@
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]))
 
-(defn update-github-data! []
-  (github/update-github-data! (plugin/get-plugins)))
+(defn update-github-data! [])
+  ; (github/update-github-data! (plugin/get-plugins)))
 
 (defn update-plugins! []
   (let [plugins (awesome/get-plugins)]
@@ -26,8 +26,8 @@
     (when (:update-plugins? config)
       (update-plugins!))
 
-    (when (:update-github-data? config)
-      (update-github-data!))
+    ; (when (:update-github-data? config)
+    ;   (update-github-data!))
 
     this)
 

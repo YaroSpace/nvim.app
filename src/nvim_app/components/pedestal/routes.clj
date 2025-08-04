@@ -7,7 +7,10 @@
 
 (def routes
   (route/expand-routes
-   #{["/" :get h/plugins-handler :route-name :home]
+   #{["/" :get h/repos-handler :route-name :home]
      ["/greet" :get h/respond-hello :route-name :greet]
      ["/info" :get h/info-handler :route-name :info]
-     ["/plugins-page" :get h/plugins-page-handler :route-name :plugins-page]}))
+     ["/plugins" :get h/plugins-handler :route-name :plugins]
+     ["/plugins-page" :get h/plugins-page-handler :route-name :plugins-page]
+     ["/repos" :get h/repos-handler :route-name :repos]
+     ["/repos-page" :get h/repos-page-handler :route-name :repos-page]}))

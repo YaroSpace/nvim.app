@@ -1,6 +1,6 @@
 (ns github-test
   (:require
-   [nvim-app.github2 :refer :all]
+   [nvim-app.github :refer :all]
    [clojure.test :refer :all]
    [clj-http.client :as http]
    [helpers :as h]))

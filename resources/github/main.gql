@@ -4,6 +4,7 @@ query {
       node {
         ... on Repository {
           name
+          createdAt
           owner {
             login
           }

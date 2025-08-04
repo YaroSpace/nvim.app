@@ -1,7 +1,9 @@
 (ns nvim-app.components.pedestal.handlers
   (:require
    [nvim-app.db.plugin :as plugin]
-   [nvim-app.views.plugins :as views]
+   [nvim-app.db.repo :as repo]
+   [nvim-app.views.plugins :as view-plugin]
+   [nvim-app.views.repos :as view-repo]
 
    [next.jdbc :as jdbc]))
    ; [schema.core :as s]
@@ -48,7 +50,27 @@
        (assoc context :response
               (ok (if (= type "application/json")
                     matched
-                    (views/plugins-page matched sort page limit total))))))})
+                    (view-plugin/plugins-page matched sort page limit total))))))})
+
+(def repos-page-handler
+  {:name :repos-page-handler
+   :enter
+   (fn [context]
+     (let [type (get-in context [:request :accept :field])
+           params (-> context :request :query-params)
+           query  (:q params)
+           sort  (:sort params)
+           page   (Integer/parseInt (get-in params [:page] "1"))
+           limit  (Integer/parseInt (get-in params [:limit] "10"))
+           offset (* (dec page) limit)
+
+           matched (repo/search-repos query sort offset limit)
+           total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
+
+       (assoc context :response
+              (ok (if (= type "application/json")
+                    matched
+                    (view-repo/repos-page matched sort page limit total))))))})
 
 #_(def plugins-page-handler
     "In memory filtering"
@@ -78,7 +100,13 @@
   {:name :plugins-handler
    :enter
    (fn [context]
-     (assoc context :response (ok (views/plugins))))})
+     (assoc context :response (ok (view-plugin/plugins))))})
 
-(comment
-  (views/plugins-page (take 5 (plugin/get-plugins)) 1 2 3))
+(def repos-handler
+  {:name :repos-handler
+   :enter
+   (fn [context]
+     (assoc context :response (ok (view-repo/repos))))})
+
+(comment)
+  ; (views/plugins-page (take 5 (plugin/get-plugins)) 1 2 3))

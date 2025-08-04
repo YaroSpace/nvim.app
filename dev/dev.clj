@@ -4,7 +4,8 @@
    [nvim-app.core :refer [nvim-app-system]]
    [nvim-app.config :as config]
    [com.stuartsierra.component.repl :as component-repl]
-   [clojure.tools.namespace.repl :as repl]))
+   [clojure.tools.namespace.repl :as repl]
+   [clojure.tools.logging :as log]))
 
 (repl/disable-reload! (the-ns 'nvim-app.state))
 
@@ -16,8 +17,14 @@
 (defn reset []
   (when @app-system-atom
     (component-repl/stop))
+
   (repl/refresh)
-  (component-repl/start))
+
+  (try
+    (component-repl/start)
+    (catch Exception e
+      (log/error "Failed to start system component" (ex-message e))
+      (component-repl/stop))))
 
 (comment
   (System/setenv "TEST" "test")
