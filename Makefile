@@ -16,3 +16,5 @@ db:
 
 sync:
 	 browser-sync start --proxy localhost:6080 -f src
+remote: 
+	 clojure -T:nrebel :port 7000

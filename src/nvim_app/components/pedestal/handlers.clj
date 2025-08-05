@@ -60,6 +60,7 @@
            params (-> context :request :query-params)
            query  (:q params)
            sort  (:sort params)
+           group  (:group params)
            page   (Integer/parseInt (get-in params [:page] "1"))
            limit  (Integer/parseInt (get-in params [:limit] "10"))
            offset (* (dec page) limit)
@@ -70,7 +71,7 @@
        (assoc context :response
               (ok (if (= type "application/json")
                     matched
-                    (view-repo/repos-page matched sort page limit total))))))})
+                    (view-repo/repos-page matched group sort page limit total))))))})
 
 #_(def plugins-page-handler
     "In memory filtering"

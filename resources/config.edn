@@ -10,9 +10,9 @@
 
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
            :enable #or [#env NVIM_APP_REPL_ENABLE false]}
- :sched   {:awesome-interval 8} ; hours
+ :sched    {:enable #profile {:default true :dev false}
+            :update-repos-interval-hr 1}
  :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]}
- :app     {:update-plugins? #profile {:default true :dev false}
-           :update-github-data? #profile {:default true :dev false}}}
+ :app     {:update-on-start? #profile {:default false :dev false}}}
 
 

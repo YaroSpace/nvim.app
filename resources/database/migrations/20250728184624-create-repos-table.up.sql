@@ -1,8 +1,11 @@
+CREATE EXTENSION IF NOT EXISTS citext;
+--;;
+
 CREATE TABLE repos (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     owner TEXT NOT NULL,
-    repo TEXT NOT NULL,
+    repo CITEXT NOT NULL,
     url TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     stars INTEGER NOT NULL DEFAULT 0,

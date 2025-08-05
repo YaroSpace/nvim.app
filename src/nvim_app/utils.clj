@@ -16,6 +16,13 @@
        (when (:verbose opts)
          (log/error (str "Failed to parse JSON: " data " - " (ex-message e))))))))
 
+(defn truncate
+  [data & {:keys [lines] :or {lines 2}}]
+  (str (->> (str/split data #"\n|\\n")
+            (take lines)
+            (str/join "\n"))
+       "..."))
+
 (defn fetch-request
   "
   Makes request using clj-http.client and returns {:status, :body, :errors, :response}.
@@ -23,7 +30,7 @@
   Errors are a merge of exception data and errors field from response body.
   Logs error on failure.
   "
-  [request]
+  [request & {:keys [verbose] :or {verbose false}}]
 
   (try
     (let [{:keys [status headers body] :as resp} (http/request request)
@@ -42,13 +49,12 @@
                                         (ex-message e))
                            :reason reason-phrase}
                   :headers headers
-                  :body (or json body)
-                  :response response
-                  :request (update request
-                                   :body #(str (->> (str/split % #"\n|\\n")
-                                                    (take 2)
-                                                    (str/join "\n"))
-                                               "..."))}]
+                  :body (or json body)}]
+                  ; :request (update request :body truncate)}]
+                  ; :response response
 
-        (log/error (str "Failed to fetch request: " resp))
+        (when verbose
+          (log/error (str "Failed to fetch request: "
+                          status (select-keys resp [:status :errors :body]))))
+        (tap> resp)
         resp))))

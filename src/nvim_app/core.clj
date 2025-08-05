@@ -5,6 +5,7 @@
    [nvim-app.components.app :as app]
    [nvim-app.components.pedestal.core :as pedestal-component]
    [nvim-app.components.database :as database-component]
+   [nvim-app.components.sched :as sched-component]
    [nvim-app.components.repl :as repl-component]
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]))
@@ -20,8 +21,9 @@
     :database-component (database-component/new config)
     :pedestal-component (component/using (pedestal-component/new config)
                                          [:database-component])
+    :sched (sched-component/new config)
     :app  (app/->App (:app config)))
-   (component/system-using {:app [:repl :pedestal-component :database-component]})))
+   (component/system-using {:app [:repl :sched :pedestal-component :database-component]})))
 
 (defn -main []
   (try
@@ -35,7 +37,7 @@
        (new Thread #(component/stop-system system))))
 
     (catch Exception e
-      (log/error (ex-message e) "Failed to start system component")
+      (log/error "Failed to start system component" (ex-message e))
       (component/stop (:system (ex-data e))))))
 
 (comment

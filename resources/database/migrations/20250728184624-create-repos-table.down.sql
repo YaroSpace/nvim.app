@@ -1,1 +1,1 @@
-drop table if exists repositories;
+drop table if exists repos;

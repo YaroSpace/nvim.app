@@ -1,0 +1,22 @@
+ID%s: repository(owner: "%s", name: "%s") { 
+  stargazerCount
+  description
+  owner { login }
+  name
+  url
+  repositoryTopics(first: 10) {
+    nodes {
+      topic {
+        name
+      }
+    }
+  }
+  defaultBranchRef {
+    target {
+      ... on Commit {
+        committedDate
+      }
+    }
+  }
+}
+

@@ -30,6 +30,31 @@
          (tap> e)
          (throw e))))))
 
+(defn count [table]
+  (:count
+   (query-one! {:select [:%count.*] :from [table]})))
+
+(defn select [table & [key value]]
+  (query!
+   (cond-> {:select :* :from [table]}
+     (not= :where key) (assoc :where [:= key value])
+     (= :where key) (assoc :where value))))
+
+(defn select-one [table & [key value]]
+  (first (select table key value)))
+
+(defn insert! [table & {:keys [columns values]}]
+  (sql/format (cond-> {:insert-into table
+                       :values [values]
+                       :returning :*}
+                columns (assoc :columns columns))))
+
+(defn update! [table & {:keys [values where]}]
+  (query-one!
+   {:update table
+    :set values
+    :where (into [:=] where)}))
+
 (defn db-empty? []
   (empty? (query! {:select :table_name
                    :from :information_schema.tables
@@ -57,13 +82,29 @@
   ; (jdbc/execute! (get-ds) ["DROP SCHEMA public CASCADE"])
   ; (jdbc/execute! (get-ds) ["CREATE SCHEMA public"]))
 
+(defn get-migration-config []
+  {:store :database
+   :migration-dir "database/migrations"
+   :db (:datasource (get-ds))})
+
+(defn migration-down! []
+  (let [config (get-migration-config)]
+    (migratus/rollback config)
+    (migratus.core/pending-list config)))
+
+(defn migration-up! []
+  (let [config (get-migration-config)]
+    (migratus/migrate config)
+    (migratus.core/pending-list config)))
+
+(defn migration-create! [name]
+  (let [config (get-migration-config)]
+    (migratus/create config name)
+    (migratus.core/pending-list config)))
+
 (comment
-  (let [config {:store :database
-                :migration-dir "database/migrations"
-                :db (:datasource (get-ds))}]
-    ; (migratus/create config "create-github2-table"))
-    ; (migratus/rollback config))
-    (migratus/migrate config))
-    ; (migratus.core/pending-list config))
+  (do
+    (migration-down!)
+    (migration-up!))
 
   (reset!! (get-ds)))

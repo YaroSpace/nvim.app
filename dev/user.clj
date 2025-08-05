@@ -2,10 +2,10 @@
   (:require
    [clojure.tools.namespace.repl :as repl]
    [spy.reader]
-
    [clojure.test :as test]
    [nrepl.core :as nrepl]
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [nvim-app.state])
 
   (:import
    [ch.qos.logback.classic Level]
@@ -46,15 +46,37 @@
     (let [client (nrepl/client conn 1000)]
       (first (nrepl/message client data)))))
 
-(defn ppn
+(defn start-reveal []
+  (require 'vlaaad.reveal)
+  (add-tap ((resolve `vlaaad.reveal/ui))))
+
+(defn p>
   ([data]
-   (ppn "\\n|\n" data))
+   (p> "\\n|\n" data))
   ([sep data]
    (doseq [line (str/split (str data) (re-pattern sep))]
      (println line))))
 
+(defn tap> [data-or-label & label]
+  (let [data (or (first label) data-or-label)]
+    (when label (clojure.core/tap> data-or-label))
+    (clojure.core/tap> data)
+    (clojure.core/tap> "================================================>")
+    data))
+
+;; Require into all namespaces
+(defn require-user-helpers []
+  (doseq [ns-sym (all-ns)]
+    (when (str/starts-with? (str ns-sym) "nvim-app")
+      (intern ns-sym 'tap> tap>)
+      (intern ns-sym 'p> p>))))
+
 (comment
+  (require-user-helpers)
+  (start-reveal)
   (discover-test-namespaces)
   (refresh-and-test)
   (send-to-repl {:code "(+ 1 2)" :ns "user" :op "eval"} 7000)
-  (set-log-level "com.zaxxer.hikari" :warn))
+  (set-log-level "com.zaxxer.hikari" :warn)
+
+  nvim-app.state/app-system-atom)

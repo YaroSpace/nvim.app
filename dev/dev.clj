@@ -24,6 +24,7 @@
     (component-repl/start)
     (catch Exception e
       (log/error "Failed to start system component" (ex-message e))
+      (tap> e)
       (component-repl/stop))))
 
 (comment
