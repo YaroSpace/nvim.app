@@ -1,0 +1,18 @@
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- <withJansi>true</withJansi> -->
+    <encoder>
+      <!-- <pattern>%highlight(%-5level) [%logger{20}] %d{MM-dd HH:mm:ss} - %replace(%msg){'^ATT.*', '\u001B[33m$0\u001B[0m'}%n -->
+      <pattern>%highlight(%-5level) [%logger{20}] %d{MM-dd HH:mm:ss} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="org.eclipse.jetty" level="WARN"/>
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+  <logger name="tc.postgres:latest" level="WARN"/>
+  <logger name="org.flywaydb.core" level="WARN"/>
+
+  <root level="${LOGBACK_LOGLEVEL:-INFO}">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>

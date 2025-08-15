@@ -1,0 +1,9 @@
+dev/.secrets.edn
+
+target/*
+
+.todo.md
+docker-compose.override.yaml
+
+node_modules/
+*.http

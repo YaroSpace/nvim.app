@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+.htmx-indicator{
+     opacity:0;
+     transition: opacity 500ms ease-in;
+     display: contents;
+ }
+ .htmx-request .htmx-indicator{
+     opacity:1;
+ }
+ .htmx-request.htmx-indicator{
+     opacity:1;
+ }

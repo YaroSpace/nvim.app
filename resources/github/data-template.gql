@@ -1,0 +1,4 @@
+query {
+  %s 
+  rateLimit { cost remaining }
+}

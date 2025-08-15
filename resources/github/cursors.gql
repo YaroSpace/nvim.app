@@ -1,0 +1,7 @@
+query {
+  search(query: "%s", type: REPOSITORY, first: %s, after: "%s") {
+    repositoryCount
+    pageInfo { hasNextPage endCursor }
+  }
+  rateLimit { cost remaining }
+}

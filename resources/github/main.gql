@@ -1,0 +1,40 @@
+query {
+  search(query: "%s", type: REPOSITORY, first: %s, after: "%s") {
+    edges {
+      node {
+        ... on Repository {
+          name
+          createdAt
+          owner {
+            login
+          }
+          description
+          url
+          stargazerCount
+          repositoryTopics(first: 10) {
+            nodes {
+              topic {
+                name
+              }
+            }
+          }
+          defaultBranchRef {
+            target {
+              ... on Commit {
+                committedDate
+              }
+            }
+          }
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+  rateLimit {
+    cost
+    remaining
+  }
+}

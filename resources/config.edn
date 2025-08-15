@@ -1,0 +1,19 @@
+{:secrets #include "../dev/.secrets.edn"
+
+ :server  {:port #long #or [#env NVIM_APP_PORT 6080]
+           :host #or [#env NVIM_APP_HOST "localhost"]
+           :cookie-key #profile {:default nil :dev "1234567890123456"}}
+
+ :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
+           :username #or [#env DATABASE_USER "nvim"]
+           :password #or [#env DATABASE_PASSWORD "nvim"]
+           :logging? #profile {:default false :dev false}}
+
+ :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
+           :enable #or [#env NVIM_APP_REPL_ENABLE false]}
+ :sched    {:enable #profile {:default true :dev false}
+            :update-repos-interval-hr 1}
+ :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]}
+ :app     {:update-on-start? #profile {:default false :dev false}}}
+
+
