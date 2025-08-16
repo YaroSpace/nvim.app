@@ -32,18 +32,9 @@ services:
         coolify:
             aliases:
                 - nvim-app
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:9080"]
-    #   interval: 30s
-    #   timeout: 5s
-    #   retries: 3
-    #   start_period: 10s
     labels:
       - traefik.enable=true
       - traefik.http.services.web.loadbalancer.server.port=9080
-      # - traefik.http.routers.http-nvim-app-web.entryPoints=https
-      # - "traefik.http.routers.http-nvim-app-web.rule=Host(`nvim.app`) && PathPrefix(`/`)"
-      # - "traefik.http.routers.http-nvim-app-web.rule=Host(`www.nvim.app`) && PathPrefix(`/`)"
 
 volumes:
   db-data:
