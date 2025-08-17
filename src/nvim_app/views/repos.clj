@@ -21,6 +21,9 @@
 (defn date->str [date]
   (first (str/split (str date) #" ")))
 
+(defn number->str [n]
+  (str/replace (format "%,d" n) "," " "))
+
 (defn group-by-date [repos]
   (->> repos
        (group-by #(date->week (:updated %)))
@@ -28,7 +31,21 @@
        (reduce-kv (fn [acc week repos] (assoc acc (week->date week) repos)) {})))
 
 (def bg-color "background-color:#d3e4db; ")
-(def hx-include "#query-input, #limit-input, #sort, #group")
+(def hx-include "#query-input, #limit-input, #category, #sort, #group")
+
+(defn topic-color [topic]
+  (let [has? (fn [topics] (some #(str/includes? topic %) topics))]
+    (format " %s "
+            (cond
+              (has? ["lsp" "telescope"]) "bg-yellow-100"
+              (has? ["ai" "llm" "lua"]) "bg-orange-100"
+              (has? ["colorscheme" "theme"]) "bg-red-100"
+              (has? ["markdown" "treesitter"]) "bg-cyan-100"
+              (has? ["config" "dotfiles"]) "bg-indigo-100"
+              (has? ["python" "rust"]) "bg-lime-100"
+              (has? ["neovim" "nvim"]) "bg-blue-100"
+              (has? ["vim" "plugin" "terminal"]) "bg-purple-100"
+              :else " bg-green-100 "))))
 
 (defn search-input [url query]
   [:div {:class "relative"}
@@ -63,6 +80,25 @@
      [:option {:value "stars" :selected (= "stars" sort)} "Stars"]
      [:option {:value "updated" :selected (= "updated" sort)} "Last Update"]
      [:option {:value "created" :selected (= "created" sort)} "Created"]]
+
+    [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
+     (chevron-down-icon)]]])
+
+(defn category-dropdown [url category categories]
+  [:div {:class "relative"}
+   [:div {:class "flex items-center space-x-1"}
+    [:select {:class "appearance-none bg-transparent border border-green-500 rounded-lg
+                      px-3 py-2 pr-8 text-sm text-gray-700 
+                      focus:outline-none focus:ring-2 focus:ring-green-600
+                      focus:border-transparent w-auto sm:w-34"
+              :hx-get url
+              :hx-include hx-include
+              :hx-target "#plugins-list"
+              :id "category" :name "category"}
+
+     [:option {:value "" :selected (= "" category)} "-"]
+     (for [name categories]
+       [:option {:value name :selected (= name category)} name])]
 
     [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
      (chevron-down-icon)]]])
@@ -112,16 +148,21 @@
             :disabled (>= page total)}
    (chevron-right-icon)])
 
-(defn controls-and-pagination [url {:keys [group sort page total limit]}]
+(defn controls-and-pagination [url {:keys [group sort category categories
+                                           page total limit]}]
   [:div {:class "flex flex-col md:flex-row items-center justify-between 
                  mt-4 mb-4 py-3 px-4 gap-4 max-w-4xl mx-auto"
          :style (str bg-color "border-radius: 8px;")}
 
-   [:div {:class "flex items-center space-x-4 text-green-700"}
+   [:div {:class "flex flex-wrap gap-y-4 justify-center items-center space-x-2 text-green-700"}
     (group-icon)
     (group-dropdown url group)
+
     (sort-icon)
-    (sort-dropdown url sort)]
+    (sort-dropdown url sort)
+
+    (category-icon)
+    (category-dropdown url category categories)]
 
    [:div {:class "flex items-center space-x-2"}
     [:div {:class "text-sm text-green-700 font-medium mr-2"}
@@ -148,21 +189,12 @@
 
    (pagination-btn-next url page total)])
 
-(defn topic-color [topic]
-  (format " %s "
-          (cond
-            (#{"lua" "lsp"} topic) "bg-yellow-100"
-            (#{"neovim" "nvim"} topic) "bg-orange-100"
-            (#{"ai"} topic) "bg-grey-100"
-            (#{"vim" "plugin"} topic) "bg-blue-100"
-            (#{"colorscheme"} topic) "bg-red-100"
-            :else " bg-green-100 ")))
-
 (defn plugin-topic [topic]
   [:span {:class (str "inline-flex items-center px-2 py-1 rounded-full text-xs
                   font-medium" (topic-color topic) "green-100 text-gray-700")} topic])
 
-(defn plugin-card [{:keys [url name description topics stars created updated]}]
+(defn plugin-card [{:keys [url name description topics created updated
+                           stars stars_week stars_month]}]
   [:div {:class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
          :style bg-color}
 
@@ -178,16 +210,32 @@
 
      (when (seq topics)
        [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
-        (map plugin-topic (str/split topics #" "))])]
+        (map plugin-topic (str/split topics #" "))])
 
-    [:div {:class "flex items-center space-x-1 text-yellow-500"}
-     (star-icon)
-     [:span {:class "text-sm text-green-900"} stars]]]
+     [:div {:class "mt-4"}
+      [:div {:class "text-sm text-gray-500 flex flex-col sm:flex-row sm:space-x-4"}
+       [:span "Created: " (date->str created)]
+       [:span "Last updated: " (date->str updated)]]]]
 
-   [:div {:class "mt-2"}
-    [:div {:class "text-sm text-gray-500 flex flex-col sm:flex-row sm:space-x-4"}
-     [:span "Created: " (date->str created)]
-     [:span "Last updated: " (date->str updated)]]]])
+    (when (> stars 0)
+      [:div {:class "flex flex-col items-end pt-4 pl-2"}
+       [:div {:class "flex items-center space-x-1 py-2 text-yellow-500"}
+        (star-icon)
+        [:span {:class "text-sm text-green-900"} (number->str stars)]]
+
+       (let [stars-week (- stars stars_week)]
+         (when (> stars-week 0)
+           [:div {:class "flex items-center space-x-1 py-2 text-yellow-500"}
+            (growth-icon)
+            [:span {:class "text-sm"} "w "]
+            [:span {:class "text-sm text-green-900"} (number->str stars-week)]]))
+
+       (let [stars-month (- stars stars_month)]
+         (when (> stars-month 0)
+           [:div {:class "flex items-center space-x-1 py-2 text-yellow-500"}
+            (growth-icon)
+            [:span {:class "text-sm"} "m "]
+            [:span {:class "text-sm text-green-900"} (number->str stars-month)]]))])]])
 
 (defn category-section [category-name plugins]
   [:div {:class "mb-8"}

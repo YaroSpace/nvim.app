@@ -12,7 +12,7 @@
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
            :enable #or [#env NVIM_APP_REPL_ENABLE false]}
  :sched    {:enable #profile {:default true :dev false}
-            :update-repos-interval-hr 1}
+            :update-repos-interval-hr 4}
  :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]}
  :app     {:update-on-start? #profile {:default false :dev false}
            :env #profile {:default :prod :dev :dev}}}

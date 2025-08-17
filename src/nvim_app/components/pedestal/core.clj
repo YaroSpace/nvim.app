@@ -10,8 +10,7 @@
    [ring.middleware.session.cookie :refer [cookie-store]]
    [cheshire.core :as json]
    [clojure.tools.logging :as log]
-   [clojure.string :as str]
-   [user :as u]))
+   [clojure.string :as str]))
 
 (def supported-types ["text/html"
                       "application/edn"
@@ -19,9 +18,9 @@
                       "text/plain"])
 (def CSP-policy
   (str/join "; " ["default-src 'self'"
-                  "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-                   ; https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com"
-                  "img-src 'self' https://neovim.io"
+                  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.googletagmanager.com"
+                  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com"
+                  "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com"
                   "style-src 'self' 'unsafe-inline'"]))
 
 (def content-negotiation-interceptor
@@ -121,7 +120,6 @@
                                      coerce-body-interceptor
                                      content-negotiation-interceptor
                                      csp-interceptor])
-                     (u/tap>>)
                      (http/create-server)
                      (http/start))]
       (assoc this ::server server)))
