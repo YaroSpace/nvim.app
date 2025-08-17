@@ -18,16 +18,14 @@
 (defn menu-item [href text]
   [:a {:href href :class "block px-4 py-2 text-sm text-gray-700
                           hover:bg-green-50 hover:text-green-900 transition-colors"} text])
-  
+
 (defn menu []
   [:div {:class "hidden absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"}
    [:div {:class "py-1"}
-    (menu-item "#" "Home")
-    (menu-item "#" "News")
-    (menu-item "#" "About")]])
-  
+    (menu-item "/" "Home")
+    (menu-item "/news" "News")
+    (menu-item "/about" "About")]])
 
-;; Updated header to include dropdown menu with Home, News, About items
 (def header
   [:header {:style (str bg-color "border-bottom: 1px solid #c1d5c9")}
    [:div {:class "max-w-4xl mx-auto px-4 py-6"}

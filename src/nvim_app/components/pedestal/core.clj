@@ -1,6 +1,8 @@
 (ns nvim-app.components.pedestal.core
   (:require
+   [nvim-app.components.app :as app]
    [nvim-app.components.pedestal.routes :as r]
+   [nvim-app.components.pedestal.handlers :as h]
    [com.stuartsierra.component :as component]
    [io.pedestal.http :as http]
    [io.pedestal.interceptor :as interceptor]
@@ -8,7 +10,8 @@
    [ring.middleware.session.cookie :refer [cookie-store]]
    [cheshire.core :as json]
    [clojure.tools.logging :as log]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [user :as u]))
 
 (def supported-types ["text/html"
                       "application/edn"
@@ -16,8 +19,8 @@
                       "text/plain"])
 (def CSP-policy
   (str/join "; " ["default-src 'self'"
-                  "script-src 'self' 'unsafe-inline' 'unsafe-eval' 
-                   https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com"
+                  "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+                   ; https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com"
                   "img-src 'self' https://neovim.io"
                   "style-src 'self' 'unsafe-inline'"]))
 
@@ -58,6 +61,13 @@
         (nil? (get-in context [:response :headers "Content-Type"]))
         (update-in [:response] coerce-to (accepted-type context))))}))
 
+(def not-found-interceptor
+  {:name :not-found
+   :leave (fn [context]
+            (if (not (-> context :response :body))
+              (h/not-found context)
+              context))})
+
 (def exception-interceptor
   (interceptor/interceptor
    {:name ::exception-handler
@@ -66,12 +76,17 @@
                    exception-message (.getMessage exception)]
 
                (log/error :msg (str "Exception occurred: " exception-message))
+               (when (app/dev?)
+                 (tap> exception))
 
                (assoc context :response
-                      {:status 500
-                       :body {:error true
-                              :exception-type exception-type
-                              :message exception-message}})))}))
+                      (cond-> {:status 500
+                               :headers {"Content-Type" "application/json"}}
+                        (app/dev?) (assoc :body
+                                          {:error true
+                                           :exception-type exception-type
+                                           :message exception-message
+                                           :exception exception})))))}))
 
 (defn get-inject-dependencies-interceptor
   [component]
@@ -86,8 +101,7 @@
    ::http/type :jetty
    ::http/port (:port config)
    ::http/host (:host config)
-   ; ::not-found-interceptor 
-   ; ::http/allowed-origins {:creds true}
+   ::http/not-found-interceptor not-found-interceptor
    ::http/enable-session {:cookie-name "nvim-app-session"
                           :store (cookie-store (when (string? (:cookie-key config))
                                                  {:key (.getBytes (:cookie-key config))}))
@@ -107,6 +121,7 @@
                                      coerce-body-interceptor
                                      content-negotiation-interceptor
                                      csp-interceptor])
+                     (u/tap>>)
                      (http/create-server)
                      (http/start))]
       (assoc this ::server server)))
