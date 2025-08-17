@@ -14,6 +14,7 @@
  :sched    {:enable #profile {:default true :dev false}
             :update-repos-interval-hr 1}
  :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]}
- :app     {:update-on-start? #profile {:default false :dev false}}}
+ :app     {:update-on-start? #profile {:default false :dev false}
+           :env #profile {:default :prod :dev :dev}}}
 
 
