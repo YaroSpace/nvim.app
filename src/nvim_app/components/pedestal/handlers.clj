@@ -1,5 +1,6 @@
 (ns nvim-app.components.pedestal.handlers
   (:require
+   [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
    [nvim-app.views.repos :as repos]
    [nvim-app.views.news :as news]
@@ -17,7 +18,6 @@
      session (assoc :session session))))
 
 (def ok (partial response 200))
-(def created (partial response 201))
 
 (defn not-found [context]
   (assoc context :response
@@ -44,13 +44,15 @@
    :enter
    (fn [{:keys [request] :as context}]
      (let [{:keys [accept query-params]} request
-           {:keys [q sort page limit] :or {page "1" limit "10"}} query-params
+           {:keys [q category sort page limit] :or {page "1" limit "10"}} query-params
 
            page   (parse-long page)
            limit  (parse-long limit)
            offset (* (dec page) limit)
 
-           matched (repo/search-repos q sort offset limit)
+           matched (repo/search-repos q category sort offset limit)
+           categories (map :name (db/select :categories))
+
            total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
 
        (assoc context :response
@@ -58,6 +60,7 @@
                         (cond-> matched
                           (not= (:type accept) "application/json")
                           (repos/plugins-list (assoc query-params
+                                                     :categories categories
                                                      :page page
                                                      :limit limit
                                                      :total total)))

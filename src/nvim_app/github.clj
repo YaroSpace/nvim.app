@@ -12,7 +12,7 @@
    [clojure.string :as str])
 
   (:import
-   [java.time Instant]
+   [java.time Instant LocalDate DayOfWeek]
    [java.sql Timestamp]))
 
 (def github-config
@@ -223,13 +223,23 @@
        (count)
        (log/info "Github: Updated repositories from Awesome:")))
 
+(defn update-stars [{:keys [stars] :as repo}]
+  (let [now (LocalDate/now)
+        dow (.getDayOfWeek now)
+        dom (.getDayOfMonth now)]
+    (cond-> repo
+      (= "SUNDAY" (.name dow)) (assoc :stars_week stars)
+      (= 1 dom) (assoc :stars_month stars))))
+
 (defn process-github-data-async  [resp out-ch]
   (a/go
     (let [resp-norm (normalize-github-data-response resp)
           {:keys [results errors]} resp-norm]
       (doseq [repo results]
         (try
-          (repo/upsert-repo! repo)
+          (-> repo
+              (update-stars)
+              (repo/upsert-repo!))
           (catch Exception e
             (log/error (ex-message e)))))
 
@@ -331,4 +341,10 @@
              :where [:not= :category_id nil])
   (a/go (update-all!))
   (a/<!! (search-github-async "topic:neovim topic:plugin"))
-  (sort (map ns-name (all-ns))))
+  (sort (map ns-name (all-ns)))
+  (->> (db/select :repos)
+       (mapcat #(str/split (:topics %) #" "))
+       (frequencies)
+       (sort-by val >)
+       (take 40)))
+      ; (map key)))

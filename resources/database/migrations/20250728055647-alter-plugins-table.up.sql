@@ -1,6 +1,0 @@
-ALTER TABLE plugins
-ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
---;;
-UPDATE plugins
-SET created_at = CURRENT_TIMESTAMP
-WHERE created_at IS NULL;

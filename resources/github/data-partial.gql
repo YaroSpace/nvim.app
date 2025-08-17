@@ -4,7 +4,7 @@ ID%s: repository(owner: "%s", name: "%s") {
   owner { login }
   name
   url
-  repositoryTopics(first: 10) {
+  repositoryTopics(first: 20) {
     nodes {
       topic {
         name
