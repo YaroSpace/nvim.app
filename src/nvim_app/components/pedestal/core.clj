@@ -12,19 +12,16 @@
    [clojure.tools.logging :as log]
    [clojure.string :as str]))
 
-(def supported-types ["text/html"
-                      "application/edn"
-                      "application/json"
-                      "text/plain"])
 (def CSP-policy
   (str/join "; " ["default-src 'self'"
-                  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.googletagmanager.com"
-                  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com"
+                  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com 
+                   https://*.googletagmanager.com"
+
+                  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com 
+                   https://*.googletagmanager.com https://github.com"
+
                   "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com"
                   "style-src 'self' 'unsafe-inline'"]))
-
-(def content-negotiation-interceptor
-  (content-negotiation/negotiate-content supported-types))
 
 (def csp-interceptor
   (interceptor/interceptor
@@ -33,20 +30,25 @@
              (update-in context [:response :headers]
                         merge {"Content-Security-Policy" CSP-policy}))}))
 
-(defn accepted-type
-  [context]
+(def supported-types ["text/html"
+                      "application/edn"
+                      "application/json"
+                      "text/plain"])
+
+(def content-negotiation-interceptor
+  (content-negotiation/negotiate-content supported-types))
+
+(defn accepted-type [context]
   (get-in context [:request :accept :field] "text/plain"))
 
-(defn transform-content
-  [body content-type]
+(defn transform-content [body content-type]
   (case content-type
     "text/html" body
     "text/plain" body
     "application/edn" (pr-str body)
     "application/json" (json/encode body)))
 
-(defn coerce-to
-  [response content-type]
+(defn coerce-to [response content-type]
   (-> response
       (update :body transform-content content-type)
       (assoc-in [:headers "Content-Type"] content-type)))
@@ -63,9 +65,9 @@
 (def not-found-interceptor
   {:name :not-found
    :leave (fn [context]
-            (if (not (-> context :response :body))
-              (h/not-found context)
-              context))})
+            (if (-> context :response :status)
+              context
+              (h/not-found context)))})
 
 (def exception-interceptor
   (interceptor/interceptor
@@ -75,17 +77,17 @@
                    exception-message (.getMessage exception)]
 
                (log/error :msg (str "Exception occurred: " exception-message))
-               (when (app/dev?)
+               (when app/dev?
                  (tap> exception))
 
                (assoc context :response
                       (cond-> {:status 500
                                :headers {"Content-Type" "application/json"}}
-                        (app/dev?) (assoc :body
-                                          {:error true
-                                           :exception-type exception-type
-                                           :message exception-message
-                                           :exception exception})))))}))
+                        app/dev? (assoc :body
+                                        {:error true
+                                         :exception-type exception-type
+                                         :message exception-message
+                                         :exception exception})))))}))
 
 (defn get-inject-dependencies-interceptor
   [component]

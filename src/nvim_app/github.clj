@@ -12,12 +12,12 @@
    [clojure.string :as str])
 
   (:import
-   [java.time Instant LocalDate DayOfWeek]
+   [java.time Instant LocalDate]
    [java.sql Timestamp]))
 
 (def github-config
   {:api-uri "https://api.github.com/graphql"
-   :token (:token (:github (config/read-config)))
+   :token (-> (config/read-config) :github :token)
    :batch-size 100
    :main-query (slurp (io/resource "github/main.gql"))
    :cursors-query (slurp (io/resource "github/cursors.gql"))

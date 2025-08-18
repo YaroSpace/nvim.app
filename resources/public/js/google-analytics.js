@@ -6,11 +6,11 @@ function gtag() {
   dataLayer.push(arguments);
 }
 
-htmx.on("htmx:afterSwap", function (event) {
-  gtag("config", GID, {
-    page_path: event.detail.pathInfo.finalRequestPath,
-  });
-});
-
 gtag("js", new Date());
 gtag("config", GID);
+
+htmx.on("htmx:afterSwap", function (event) {
+  gtag("event", "search", {
+    search_term: event.detail.pathInfo.finalRequestPath,
+  });
+});

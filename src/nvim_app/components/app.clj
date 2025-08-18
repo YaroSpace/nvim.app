@@ -11,15 +11,19 @@
   {:records (db/count :repos)
    :updates (sched/completed-tasks)})
 
-(defn dev? []
-  (= :dev (get-in @app-system-atom [:app :env])))
+(def app-config {})
 
-(defrecord App [app]
+(def dev?
+  (= :dev (-> app-config :app :env)))
+
+(defrecord App [config app]
   component/Lifecycle
 
   (start [this]
     (log/info "Starting nvim-app")
+
     (reset! app-system-atom this)
+    (alter-var-root #'app-config (constantly config))
 
     (when (:update-on-start? app)
       (github/update-all!))
@@ -31,3 +35,7 @@
     (reset! app-system-atom nil)
     (assoc this :app nil)
     this))
+
+(defn new
+  [config]
+  (->App config (:app config)))

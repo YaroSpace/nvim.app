@@ -67,7 +67,8 @@
 (defn sort-dropdown [url sort]
   [:div {:class "relative"}
    [:div {:class "flex items-center space-x-1"}
-    [:select {:class "appearance-none bg-transparent border border-green-500 rounded-lg
+    [:select {:title "Sort by"
+              :class "appearance-none bg-transparent border border-green-500 rounded-lg
                       px-3 py-2 pr-8 text-sm text-gray-700 
                       focus:outline-none focus:ring-2 focus:ring-green-600
                       focus:border-transparent w-32"
@@ -87,7 +88,8 @@
 (defn category-dropdown [url category categories]
   [:div {:class "relative"}
    [:div {:class "flex items-center space-x-1"}
-    [:select {:class "appearance-none bg-transparent border border-green-500 rounded-lg
+    [:select {:title "Filter by category"
+              :class "appearance-none bg-transparent border border-green-500 rounded-lg
                       px-3 py-2 pr-8 text-sm text-gray-700 
                       focus:outline-none focus:ring-2 focus:ring-green-600
                       focus:border-transparent w-auto sm:w-34"
@@ -105,7 +107,8 @@
 
 (defn group-dropdown [url group]
   [:div {:class "relative"}
-   [:select {:class "appearance-none bg-transparent border border-green-500
+   [:select {:title "Group by"
+             :class "appearance-none bg-transparent border border-green-500
                      rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 
                      focus:outline-none focus:ring-2 focus:ring-green-600 
                      focus:border-transparent w-32"
@@ -218,23 +221,21 @@
        [:span "Last updated: " (date->str updated)]]]]
 
     (when (> stars 0)
-      [:div {:class "flex flex-col items-end pt-4 pl-2"}
+      [:div {:class "flex flex-col items-end pt-2 pl-2"}
        [:div {:class "flex items-center space-x-1 py-2 text-yellow-500"}
         (star-icon)
         [:span {:class "text-sm text-green-900"} (number->str stars)]]
 
        (let [stars-week (- stars stars_week)]
          (when (> stars-week 0)
-           [:div {:class "flex items-center space-x-1 py-2 text-yellow-500"}
-            (growth-icon)
-            [:span {:class "text-sm"} "w "]
+           [:div {:title "since beginning of the week" :class "flex items-center space-x-1 py-2 text-orange-500"}
+            (growth-icon-w)
             [:span {:class "text-sm text-green-900"} (number->str stars-week)]]))
 
        (let [stars-month (- stars stars_month)]
          (when (> stars-month 0)
-           [:div {:class "flex items-center space-x-1 py-2 text-yellow-500"}
-            (growth-icon)
-            [:span {:class "text-sm"} "m "]
+           [:div {:title "since beginning of the month" :class "flex items-center space-x-1 py-2 text-red-500"}
+            (growth-icon-m)
             [:span {:class "text-sm text-green-900"} (number->str stars-month)]]))])]])
 
 (defn category-section [category-name plugins]
@@ -266,10 +267,10 @@
        (pagination-btm url page total)]))))
 
 (defn main [params]
-  (let [{:keys [query]} params url "/repos-page"]
+  (let [{:keys [q]} params url "/repos-page"]
     (base-layout
      [:div {:class "max-w-4xl mx-auto px-4 py-6"}
-      (search-input url query)
+      (search-input url q)
       [:img {:id "indicator" :class "htmx-indicator" :src "/images/loader.svg"
              :style "display: none;"}]
 
