@@ -1,11 +1,13 @@
 (ns nvim-app.components.pedestal.handlers
   (:require
+   [nvim-app.components.app :as app]
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
    [nvim-app.views.repos :as repos]
    [nvim-app.views.news :as news]
    [nvim-app.views.about :as about]
-   [nvim-app.views.not-found :as not-found]))
+   [nvim-app.views.not-found :as not-found]
+   [nvim-app.utils :as u]))
    ; [schema.core :as s]
 
 (defn response
@@ -43,7 +45,7 @@
   {:name :repos-page
    :enter
    (fn [{:keys [request] :as context}]
-     (let [{:keys [accept query-params]} request
+     (let [{:keys [accept query-params session]} request
            {:keys [q category sort page limit] :or {page "1" limit "10"}} query-params
 
            page   (parse-long page)
@@ -64,7 +66,7 @@
                                                      :page page
                                                      :limit limit
                                                      :total total)))
-                        :session {:params query-params}))))})
+                        :session (merge session {:params query-params})))))})
 
 (def repos-index
   {:name :repos-index
@@ -72,4 +74,34 @@
             (assoc context :response
                    (ok (repos/main
                         (get-in request [:session :params])))))})
+
+(def github-callback
+  {:name :github-login
+   :enter
+   (fn [{:keys [request] :as context}]
+     (let [session (:session request)
+           user (or
+                 (:user session)
+                 (let [code (get-in request [:params :code])
+                       {:keys [client-id client-secret token-url user-url]} (:github app/app-config)
+                       token-response (u/fetch-request
+                                       {:method :post :url token-url
+                                        :accept :json :content-type :json
+                                        :form-params {:client_id client-id
+                                                      :client_secret client-secret
+                                                      :code code}}
+                                       :verbose true)
+                       access-token (-> token-response :body :access_token)
+
+                       user-response (u/fetch-request
+                                      {:method :get :url user-url
+                                       :headers {"Authorization" (str "token " access-token)}}
+                                      :verbose true)]
+
+                   (select-keys (:body user-response)
+                                [:id :login :email :avatar_url :name])))]
+
+       (assoc context :response {:status 302
+                                 :headers {"Location" "/"}
+                                 :session (assoc session :user user)})))})
 

@@ -55,6 +55,6 @@
 
         (when verbose
           (log/error (str "Failed to fetch request: "
-                          status (select-keys resp [:status :errors :body]))))
-        (tap> resp)
+                          status " " (select-keys resp [:status :errors :body])))
+          (tap> resp))
         resp))))

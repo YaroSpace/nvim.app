@@ -22,7 +22,7 @@
     :pedestal-component (component/using (pedestal-component/new config)
                                          [:database-component])
     :sched (sched-component/new config)
-    :app  (app/->App (:app config)))
+    :app  (app/new config))
    (component/system-using {:app [:repl :sched
                                   :pedestal-component
                                   :database-component]})))

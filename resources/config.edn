@@ -11,9 +11,19 @@
 
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
            :enable #or [#env NVIM_APP_REPL_ENABLE false]}
+
  :sched    {:enable #profile {:default true :dev false}
             :update-repos-interval-hr 4}
- :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]}
+
+ :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]
+           :client-id #or [#env GITHUB_CLIENT_ID #ref [:secrets :github :client-id]]
+           :client-secret #or [#env GITHUB_CLIENT_SECRET #ref [:secrets :github :client-secret]]
+           :redirect-uri #profile {:default "" :dev "http://localhost:3000/auth/github/callback"}
+           :auth-url "https://github.com/login/oauth/authorize"
+           :token-url "https://github.com/login/oauth/access_token"
+           :user-url "https://api.github.com/user"
+           :scope "user:email"}
+
  :app     {:update-on-start? #profile {:default false :dev false}
            :env #profile {:default :prod :dev :dev}}}
 

@@ -9,4 +9,5 @@
      ["/news" :get h/news-index :route-name :news]
      ["/about" :get h/about-index :route-name :about]
      ["/repos" :get h/repos-index :route-name :repos]
-     ["/repos-page" :get h/repos-page :route-name :repos-page]}))
+     ["/repos-page" :get h/repos-page :route-name :repos-page]
+     ["/auth/github/callback" :get h/github-callback :route-name :github-callback]}))

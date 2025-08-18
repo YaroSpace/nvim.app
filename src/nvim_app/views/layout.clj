@@ -1,7 +1,8 @@
 (ns nvim-app.views.layout
-  (:require [nvim-app.components.app :refer [dev?]]
-            [nvim-app.views.assets :refer :all]
-            [hiccup.page :refer [html5 include-js include-css]]))
+  (:require
+   [nvim-app.components.app :refer [dev? app-config]]
+   [nvim-app.views.assets :refer :all]
+   [hiccup.page :refer [html5 include-js include-css]]))
 
 (def bg-color "background-color:#d3e4db; ")
 
@@ -45,6 +46,15 @@
      (menu-item "/news" "News")
      (menu-item "/about" "About")]]])
 
+(defn github-login-link []
+  (let [{:keys [auth-url client-id redirect-uri scope]} (:github app-config)]
+    [:a {:title "Login with GitHub"
+         :href (str auth-url
+                    "?client_id=" client-id
+                    "&redirect_uri=" redirect-uri
+                    "&scope=" scope)}
+     (github-login-icon)]))
+
 (def header
   [:header {:style (str bg-color "border-bottom: 1px solid #c1d5c9")}
    [:div {:class "max-w-4xl mx-auto px-4 py-6"}
@@ -62,8 +72,13 @@
 
       [:h1 {:class "text-2xl font-bold text-green-900"} "Neovim Plugins Catalog"]]
 
-     [:a {:class "text-gray-600 hover:text-gray-900" :href "https://github.com/yarospace/nvim.app"}
-      (github-icon)]]]])
+     [:div {:class "flex items-center space-x-4"}
+      ; (github-login-link)
+
+      [:a {:title "Nvim.app on GitHub"
+           :class "text-gray-600 hover:text-gray-900"
+           :href "https://github.com/yarospace/nvim.app"}
+       (github-icon)]]]]])
 
 (def footer
   [:footer {:style (str bg-color "border-top: 1px solid #c1d5c9; margin-top: 0rem")}

@@ -32,7 +32,8 @@
 
 (defn upsert-repo! [repo]
   (let [{:keys [name owner description
-                stars topics created updated]} repo
+                stars stars_week stars_month
+                topics created updated]} repo
         default-date (Timestamp/from (Instant/parse "1970-01-01T00:00:00Z"))]
 
     (db/query-one!
@@ -47,12 +48,12 @@
                       :updated (or updated default-date))]
 
       :on-conflict [:repo]
-      :do-update-set {:stars (or stars 0)
-                      :stars_week (or stars 0)
-                      :stars_month (or stars 0)
-                      :topics (str/join " " (or topics ""))
-                      :updated (or updated default-date)
-                      :description (or description "")}})))
+      :do-update-set (cond-> {:topics (str/join " " (or topics ""))
+                              :updated (or updated default-date)
+                              :description (or description "")
+                              :stars (or stars 0)}
+                       stars_week (assoc :stars_week stars_week)
+                       stars_month (assoc :stars_week stars_month))})))
 
 (defn upsert-repos! [repos]
   (let [result (for [repo repos]
