@@ -28,7 +28,7 @@
         user-imports (for [file (file-seq (io/file src-dir))
                            :when (.isFile file)
                            :let [content (slurp file)
-                                 ns-matches (re-seq #".*\[user.*" content)]
+                                 ns-matches (re-seq #".*\[user :as.*" content)]
                            :when (seq ns-matches)]
                        {:file (.getPath file)
                         :matches ns-matches})]
@@ -39,15 +39,19 @@
 
 (defn uber [_]
   (clean nil)
-  (when (check-for-user-ns)
-    (b/copy-dir {:src-dirs ["src" "resources"]
-                 :target-dir class-dir})
-    (b/compile-clj {:basis @basis
-                    :ns-compile '[nvim-app.core]
-                    :class-dir class-dir})
-    (b/uber {:class-dir class-dir
-             :uber-file uber-file
-             :basis @basis
-             :main 'nvim-app.core})))
+  (if-not (check-for-user-ns)
+    (System/exit 1)
+    (do
+      (b/copy-dir {:src-dirs ["src" "resources"]
+                   :target-dir class-dir})
+
+      (b/compile-clj {:basis @basis
+                      :ns-compile '[nvim-app.core]
+                      :class-dir class-dir})
+
+      (b/uber {:class-dir class-dir
+               :uber-file uber-file
+               :basis @basis
+               :main 'nvim-app.core}))))
 
 ;; To build: clj -T:build uber

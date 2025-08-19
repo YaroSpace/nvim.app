@@ -3,6 +3,7 @@
    [nvim-app.views.assets :refer :all]
    [nvim-app.views.layout :refer [base-layout]]
    [hiccup2.core :refer [html]]
+   [hiccup.page :refer [include-js]]
    [hiccup.util :as u]
    [clojure.string :as str])
 
@@ -30,8 +31,12 @@
        (into (sorted-map-by >))
        (reduce-kv (fn [acc week repos] (assoc acc (week->date week) repos)) {})))
 
+(defn el-with [el opts & body]
+  (vec (concat (update el 1 #(merge-with (fn [a b] (str/join " " [a b])) % opts))
+               (when body body))))
+
 (def bg-color "background-color:#d3e4db; ")
-(def hx-include "#query-input, #limit-input, #category, #sort, #group")
+(def hx-include "#search-input, #limit-input, #category, #sort, #group")
 
 (defn topic-color [topic]
   (let [has? (fn [topics] (some #(str/includes? topic %) topics))]
@@ -49,7 +54,7 @@
 
 (defn search-input [url query]
   [:div {:class "relative"}
-   [:form {:class "flex px-4 items-center gap-2 w-full"
+   [:form {:id "search-form" :class "flex px-4 items-center gap-2 w-full"
            :hx-get url
            :hx-include hx-include
            :hx-target "#plugins-list"
@@ -57,30 +62,43 @@
 
     [:input {:class "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none 
                      focus:ring-2 focus:ring-green-500 focus:border-transparent"
-             :id "query-input" :name "q" :value query
+             :id "search-input" :name "q" :value query
              :placeholder "category, name, repo, description, topics ..."
              :style bg-color :type "text"}]
 
     [:div {:class "absolute right-6 top-4 text-green-600"}
      (search-icon)]]])
 
+(defn dropdown-select [url]
+  [:select {:class "appearance-none bg-transparent border border-green-500 rounded-lg
+                      px-3 py-2 pr-8 text-sm text-gray-700 
+                      focus:outline-none focus:ring-2 focus:ring-green-600
+                      focus:border-transparent"
+            :hx-get url :hx-include hx-include :hx-target "#plugins-list"
+            :hx-trigger "change delay:500ms"}])
+
+(defn group-dropdown [url group]
+  [:div {:class "relative"}
+   (el-with (dropdown-select url) {:id "group" :name "group" :title "Group by" :class "w-32"}
+            (for [[value text] [["" "-"]
+                                ["category" "Category"]
+                                ["updated" "Last Update"]]]
+              [:option {:value value :selected (= value group)} text]))
+
+   [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
+    (chevron-down-icon)]])
+
 (defn sort-dropdown [url sort]
   [:div {:class "relative"}
    [:div {:class "flex items-center space-x-1"}
-    [:select {:title "Sort by"
-              :class "appearance-none bg-transparent border border-green-500 rounded-lg
-                      px-3 py-2 pr-8 text-sm text-gray-700 
-                      focus:outline-none focus:ring-2 focus:ring-green-600
-                      focus:border-transparent w-32"
-              :hx-get url
-              :hx-include hx-include
-              :hx-target "#plugins-list"
-              :id "sort" :name "sort"}
-
-     [:option {:value "" :selected (= "" sort)} "Name"]
-     [:option {:value "stars" :selected (= "stars" sort)} "Stars"]
-     [:option {:value "updated" :selected (= "updated" sort)} "Last Update"]
-     [:option {:value "created" :selected (= "created" sort)} "Created"]]
+    (el-with (dropdown-select url) {:id "sort" :name "sort" :title "Sort by" :class "w-32"}
+             (for [[value text] [["" "Name"]
+                                 ["stars" "Stars"]
+                                 ["stars_week" "Weekly Gain"]
+                                 ["stars_month" "Monthly Gain"]
+                                 ["updated" "Last Update"]
+                                 ["created" "Created"]]]
+               [:option {:value value :selected (= value sort)} text]))
 
     [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
      (chevron-down-icon)]]])
@@ -88,68 +106,35 @@
 (defn category-dropdown [url category categories]
   [:div {:class "relative"}
    [:div {:class "flex items-center space-x-1"}
-    [:select {:title "Filter by category"
-              :class "appearance-none bg-transparent border border-green-500 rounded-lg
-                      px-3 py-2 pr-8 text-sm text-gray-700 
-                      focus:outline-none focus:ring-2 focus:ring-green-600
-                      focus:border-transparent w-auto sm:w-34"
-              :hx-get url
-              :hx-include hx-include
-              :hx-target "#plugins-list"
-              :id "category" :name "category"}
-
-     [:option {:value "" :selected (= "" category)} "-"]
-     (for [name categories]
-       [:option {:value name :selected (= name category)} name])]
+    (el-with (dropdown-select url) {:id "category" :name "category" :title "Filter by" :class "w-auto sm:w-34"}
+             [:option {:value "" :selected (= "" category)} "-"]
+             (for [name categories]
+               [:option {:value name :selected (= name category)} name]))
 
     [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
      (chevron-down-icon)]]])
 
-(defn group-dropdown [url group]
-  [:div {:class "relative"}
-   [:select {:title "Group by"
-             :class "appearance-none bg-transparent border border-green-500
-                     rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 
-                     focus:outline-none focus:ring-2 focus:ring-green-600 
-                     focus:border-transparent w-32"
-             :hx-get url
-             :hx-include hx-include
-             :hx-target "#plugins-list"
-             :id "group" :name "group"}
-
-    [:option {:value "category" :selected (= "category" group)} "Category"]
-    [:option {:value "updated" :selected (= "updated" group)} "Last Update"]]
-
-   [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
-    (chevron-down-icon)]])
-
-(defn pagination-btn-previous [url page]
+(defn pagination-btn []
   [:button {:class "px-3 py-2 text-sm font-medium text-green-700
                       bg-transparent border border-green-500 rounded-lg hover:bg-green-50
                       focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent 
                       disabled:opacity-50 disabled:cursor-not-allowed"
-
-            :hx-get (u/url url {:page (max 1 (dec page))})
             :hx-include hx-include
             :hx-target "#plugins-list"
             :hx-on:htmx:before-request "document.documentElement.scrollIntoView({ behavior: 'smooth'});"
-            :hx-indicator "#indicator"
+            :hx-indicator "#indicator"}])
+
+(defn pagination-btn-previous [url page]
+  (el-with (pagination-btn)
+           {:hx-get (u/url url {:page (max 1 (dec page))})
             :disabled (<= page 1)}
-   (chevron-left-icon)])
+           (chevron-left-icon)))
 
 (defn pagination-btn-next [url page total]
-  [:button {:class "px-3 py-2 text-sm font-medium text-green-700 bg-transparent
-                      border border-green-500 rounded-lg hover:bg-green-50
-                      focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent 
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-
-            :hx-get (u/url url {:page (min total (inc page))})
-            :hx-include hx-include
-            :hx-target "#plugins-list"
-            :hx-on:htmx:before-request "document.documentElement.scrollIntoView({ behavior: 'smooth'});"
-            :hx-indicator "#indicator"
+  (el-with (pagination-btn)
+           {:hx-get (u/url url {:page (min total (inc page))})
             :disabled (>= page total)}
-   (chevron-right-icon)])
+           (chevron-right-icon)))
 
 (defn controls-and-pagination [url {:keys [group sort category categories
                                            page total limit]}]
@@ -169,7 +154,7 @@
 
    [:div {:class "flex items-center space-x-2"}
     [:div {:class "text-sm text-green-700 font-medium mr-2"}
-     (str "Page " page " out of " total)]
+     (str "Page " page " / " total)]
 
     (pagination-btn-previous url page)
 
@@ -180,6 +165,9 @@
              :hx-get url
              :hx-include hx-include
              :hx-target "#plugins-list"}]
+
+    [:input {:id "current-page" :href "#" :class "hidden"
+             :hx-get (u/url url {:page page}) :hx-include hx-include :hx-target "#plugins-list"}]
 
     (pagination-btn-next url page total)]])
 
@@ -255,20 +243,21 @@
       [:div {:class "space-y-6"}
        (controls-and-pagination url params)
 
-       (let [default (into (sorted-map) (group-by :category plugins))
-             grouped (case group
-                       "category" default
+       (let [grouped (case group
+                       "category" (into (sorted-map) (group-by :category plugins))
                        "updated" (group-by-date plugins)
-                       default)]
+                       {"-" plugins})]
 
          (for [[group plugins] grouped]
-           (category-section group plugins)))
+           (category-section (or group "-") plugins)))
 
        (pagination-btm url page total)]))))
 
-(defn main [params]
+(defn main [request params]
   (let [{:keys [q]} params url "/repos-page"]
     (base-layout
+     {:head_include (include-js "/js/repos.js")}
+     request
      [:div {:class "max-w-4xl mx-auto px-4 py-6"}
       (search-input url q)
       [:img {:id "indicator" :class "htmx-indicator" :src "/images/loader.svg"

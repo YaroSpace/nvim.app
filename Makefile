@@ -1,7 +1,8 @@
 ssh_command = ssh -fNT nvim.app
+repl_port = 7000
 
 define confirm
-	@read -p "$(1) (y/N) " ans; [ "$$ans" = "y" ]
+	@tput setaf 3; read -p "$(1) (y/N) " ans; tput sgr0; [ "$$ans" = "y" ]
 endef
 
 .PHONY: all build clean run
@@ -41,13 +42,13 @@ remote:
 	@$(ssh_command)
 
 	@for i in $$(seq 1 30); do \
-		if nc -z localhost 7000; then \
-			echo "Port 7000 is now available, connecting..."; \
+		if nc -z localhost $(repl_port); then \
+			echo "Port $(repl_port) is now available, connecting..."; \
 			break; \
 		fi; \
 		echo "Waiting for port 7000 to become available... ($$i/30)"; \
 		sleep 1; \
 	done
 
-	@clojure -T:nrebel :port 7000
+	@clojure -T:nrebel :port $(repl_port)
 	@pkill -f "$(ssh_command)"

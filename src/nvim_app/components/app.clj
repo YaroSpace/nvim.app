@@ -13,7 +13,7 @@
 
 (def app-config {})
 
-(def dev?
+(defn dev? []
   (= :dev (-> app-config :app :env)))
 
 (defrecord App [config app]

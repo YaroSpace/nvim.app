@@ -14,10 +14,10 @@
   ([status]
    (response status nil))
 
-  ([status body & {:keys [session]}]
+  ([status body & response]
    (cond-> {:status status}
      body    (assoc :body body)
-     session (assoc :session session))))
+     response (merge response))))
 
 (def ok (partial response 200))
 
@@ -30,16 +30,16 @@
 (def news-index
   {:name :news-index
    :enter
-   (fn [context]
+   (fn [{:keys [request] :as context}]
      (assoc context :response
-            (ok (news/index))))})
+            (ok (news/index request))))})
 
 (def about-index
   {:name :news-index
    :enter
-   (fn [context]
+   (fn [{:keys [request] :as context}]
      (assoc context :response
-            (ok (about/index))))})
+            (ok (about/index request))))})
 
 (def repos-page
   {:name :repos-page
@@ -58,50 +58,76 @@
            total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
 
        (assoc context :response
-              (response 200
-                        (cond-> matched
-                          (not= (:type accept) "application/json")
-                          (repos/plugins-list (assoc query-params
-                                                     :categories categories
-                                                     :page page
-                                                     :limit limit
-                                                     :total total)))
-                        :session (merge session {:params query-params})))))})
+              {:status  200
+               :body (cond-> matched
+                       (not= (:type accept) "application/json")
+                       (repos/plugins-list (assoc query-params
+                                                  :categories categories
+                                                  :page page
+                                                  :limit limit
+                                                  :total total)))
+               :session (assoc session :params query-params)})))})
 
 (def repos-index
   {:name :repos-index
    :enter (fn [{:keys [request] :as context}]
             (assoc context :response
-                   (ok (repos/main
-                        (get-in request [:session :params])))))})
+                   {:status 200
+                    :body (repos/main request
+                                      (-> request :session :params))}))})
+
+(def github-login
+  {:name :github-login
+   :enter
+   (fn [{:keys [request] :as context}]
+     (if (:user request)
+       (assoc context :response {:status 204})
+
+       (let [{:keys [auth-url client-id redirect-uri scope]} (:github app/app-config)]
+         (assoc context :response
+                {:status 302
+                 :headers {"Location" (str auth-url "?client_id=" client-id "&redirect_uri="
+                                           redirect-uri "&scope=" scope)}}))))})
 
 (def github-callback
   {:name :github-login
    :enter
    (fn [{:keys [request] :as context}]
      (let [session (:session request)
-           user (or
-                 (:user session)
-                 (let [code (get-in request [:params :code])
-                       {:keys [client-id client-secret token-url user-url]} (:github app/app-config)
-                       token-response (u/fetch-request
-                                       {:method :post :url token-url
-                                        :accept :json :content-type :json
-                                        :form-params {:client_id client-id
-                                                      :client_secret client-secret
-                                                      :code code}}
-                                       :verbose true)
-                       access-token (-> token-response :body :access_token)
+           code (get-in request [:params :code])
+           {:keys [client-id client-secret token-url user-url]} (:github app/app-config)
 
-                       user-response (u/fetch-request
-                                      {:method :get :url user-url
-                                       :headers {"Authorization" (str "token " access-token)}}
-                                      :verbose true)]
+           token-response (u/fetch-request
+                           {:method :post :url token-url
+                            :accept :json :content-type :json
+                            :form-params {:client_id client-id
+                                          :client_secret client-secret
+                                          :code code}}
+                           :verbose true)
+           access-token (-> token-response :body :access_token)
 
-                   (select-keys (:body user-response)
-                                [:id :login :email :avatar_url :name])))]
+           user-response (u/fetch-request
+                          {:method :get :url user-url
+                           :headers {"Authorization" (str "token " access-token)}}
+                          :verbose true)
+
+           {:keys [id login email name html_url avatar_url]} (:body user-response)
+
+           user (or (db/select-one :users
+                                   :where [:= :github_id id])
+                    (db/insert! :users
+                                :values [{:github_id id
+                                          :username login
+                                          :email email
+                                          :name name
+                                          :url html_url
+                                          :avatar_url avatar_url}]))]
 
        (assoc context :response {:status 302
                                  :headers {"Location" "/"}
-                                 :session (assoc session :user user)})))})
+                                 :session (assoc session :user (:id user))})))})
 
+; TODO: add error handling for auth calls
+
+(comment
+  (db/select :users))

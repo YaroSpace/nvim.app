@@ -1,6 +1,7 @@
 (ns nvim-app.components.pedestal.core
   (:require
    [nvim-app.components.app :as app]
+   [nvim-app.db.core :as db]
    [nvim-app.components.pedestal.routes :as r]
    [nvim-app.components.pedestal.handlers :as h]
    [com.stuartsierra.component :as component]
@@ -20,7 +21,8 @@
                   "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com 
                    https://*.googletagmanager.com https://github.com"
 
-                  "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com"
+                  "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com 
+                   https://*.githubusercontent.com"
                   "style-src 'self' 'unsafe-inline'"]))
 
 (def csp-interceptor
@@ -71,30 +73,38 @@
 
 (def exception-interceptor
   (interceptor/interceptor
-   {:name ::exception-handler
+   {:name ::exception
     :error (fn [context exception]
              (let [exception-type (-> exception class .getName)
                    exception-message (.getMessage exception)]
 
                (log/error :msg (str "Exception occurred: " exception-message))
-               (when app/dev?
+               (when (app/dev?)
                  (tap> exception))
 
                (assoc context :response
                       (cond-> {:status 500
                                :headers {"Content-Type" "application/json"}}
-                        app/dev? (assoc :body
-                                        {:error true
-                                         :exception-type exception-type
-                                         :message exception-message
-                                         :exception exception})))))}))
+                        (app/dev?) (assoc :body
+                                          {:error true
+                                           :exception-type exception-type
+                                           :message exception-message
+                                           :exception exception})))))}))
 
-(defn get-inject-dependencies-interceptor
+(defn inject-dependencies-interceptor
   [component]
   (interceptor/interceptor
    {:name ::inject-dependencies
     :enter (fn [context]
              (assoc context :dependencies component))}))
+
+(def auth-interceptor
+  (interceptor/interceptor
+   {:name ::inject-auth
+    :enter (fn [{:keys [request] :as context}]
+             (if-let [user (-> request :session :user)]
+               (assoc-in context [:request :user] (db/select-one :users :id user))
+               context))}))
 
 (defn service-map [config]
   {::http/routes r/routes
@@ -106,7 +116,7 @@
    ::http/enable-session {:cookie-name "nvim-app-session"
                           :store (cookie-store (when (string? (:cookie-key config))
                                                  {:key (.getBytes (:cookie-key config))}))
-                          :cookie-attrs {:max-age 3600 :path "/" :http-only false}}
+                          :cookie-attrs {:max-age 2592000 :path "/" :http-only true :secure true}}
    ::http/join? false})
 
 (defrecord PedestalComponent [config]
@@ -118,7 +128,8 @@
                      (http/default-interceptors)
                      (update ::http/interceptors
                              concat [exception-interceptor
-                                     (get-inject-dependencies-interceptor this)
+                                     (inject-dependencies-interceptor this)
+                                     auth-interceptor
                                      coerce-body-interceptor
                                      content-negotiation-interceptor
                                      csp-interceptor])
