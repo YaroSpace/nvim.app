@@ -40,6 +40,7 @@
 
     (catch Exception e
       (log/error "Failed to start system component" (ex-message e))
+      (log/error (:via (Throwable->map e)))
       (component/stop (:system (ex-data e))))))
 
 (comment

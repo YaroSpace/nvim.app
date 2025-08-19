@@ -24,7 +24,8 @@
            :user-url "https://api.github.com/user"
            :scope "user:email"}
 
- :app     {:update-on-start? #profile {:default false :dev false}
-           :env #profile {:default :prod :dev :dev}}}
+ :app     {:env #profile {:default :prod :dev :dev}
+           :update-on-start? #profile {:default false :dev false}
+           :features {:auth #profile {:default false :dev false}}}}
 
 

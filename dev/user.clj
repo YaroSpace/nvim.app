@@ -79,6 +79,18 @@
     (clojure.core/tap> "================================================>")
     data))
 
+(defn portal-start []
+  (require '[portal.api :as inspect])
+  (comment
+    ;; Open a portal inspector window
+    (inspect/open)
+    ;; Add portal as a tap> target over nREPL connection
+    (add-tap inspect/submit)
+    ;; Clear all values in the portal inspector window
+    (inspect/clear)
+    ;; Close the inspector
+    (inspect/close)))
+
 ;; Require into all namespaces
 (defn require-user-helpers []
   (doseq [ns-sym (all-ns)]

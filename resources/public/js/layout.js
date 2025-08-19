@@ -4,16 +4,16 @@ document.addEventListener("DOMContentLoaded", () => {
     .addEventListener("click", (event) => event.stopPropagation());
 });
 
-function toggleMenu(button) {
-  const menu = button.nextElementSibling;
+function toggleMenu() {
+  const menu = document.getElementById("menu");
   menu.classList.toggle("hidden");
 
-  document.addEventListener("click", function hideMenu(event) {
-    if (!menu.contains(event.target) && event.target !== button) {
-      if (!menu.classList.contains("hidden")) {
-        menu.classList.add("hidden");
-      }
+  const hideMenu = (event) => {
+    if (!menu.contains(event.target)) {
+      menu.classList.add("hidden");
       document.removeEventListener("click", hideMenu);
     }
-  });
+  };
+
+  document.addEventListener("click", hideMenu);
 }

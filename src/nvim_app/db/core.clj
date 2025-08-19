@@ -100,7 +100,7 @@
     (migratus.core/pending-list config)))
 
 (comment
-  (migration-create! "repos-table-add-stars-week-month")
+  (migration-create! "user-table-create")
   (migration-up!)
   (migration-down!)
   (do

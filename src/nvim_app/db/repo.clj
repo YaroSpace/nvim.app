@@ -12,6 +12,8 @@
   (if (str/blank? sort) []
       (case sort
         "stars" [[:stars :desc]]
+        "stars_week" [[[:- :stars :stars_week] :desc]]
+        "stars_month" [[[:- :stars :stars_month] :desc]]
         "updated" [[:updated :desc]]
         "created" [[:created :desc]])))
 

@@ -10,4 +10,5 @@
      ["/about" :get h/about-index :route-name :about]
      ["/repos" :get h/repos-index :route-name :repos]
      ["/repos-page" :get h/repos-page :route-name :repos-page]
+     ["/auth/github" :get h/github-login :route-name :github-login]
      ["/auth/github/callback" :get h/github-callback :route-name :github-callback]}))

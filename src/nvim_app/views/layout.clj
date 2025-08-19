@@ -11,24 +11,27 @@
    [:script {:async "async" :src "https://www.googletagmanager.com/gtag/js?id=G-ZL4M33MPVW"}]
    (include-js "/js/google-analytics.js")])
 
-(defn head []
+(defn head [head-include]
   [:head
    [:meta {:charset "UTF-8"}]
    [:meta {:content "width=device-width, initial-scale=1.0" :name "viewport"}]
-   [:link {:href "/images/favicon.ico" :rel "icon" :type "image/x-icon"}
+   [:link {:href "/images/favicon.ico" :rel "icon" :type "image/x-icon"}]
 
-    (when dev?
-      [:meta {:name "htmx-config" :content "{\"responseHandling\": [{\"code\":\".*\", \"swap\": true}]}"}])
+   (when (dev?)
+     [:meta {:name "htmx-config" :content "{\"responseHandling\": [{\"code\":\".*\", \"swap\": true}]}"}])
 
-    [:title "Neovim Plugins Catalog"]
+   [:title "Neovim Plugins Catalog"]
 
-    (include-js "/js/htmx.min.js")
-    (include-js "/js/layout.js")
-    (include-css "/css/out.css")
-    (google-analytics)]])
+   (include-js "/js/htmx.min.js")
+   (include-js "/js/layout.js")
+   (include-css "/css/out.css")
+
+   (when head-include head-include)
+   (when-not (dev?) (google-analytics))])
 
 (defn menu-item [href text]
-  [:a {:href href :class "block px-4 py-2 text-sm text-gray-700
+  [:a {:href href :onclick "toggleMenu(this)"
+       :class "block px-4 py-2 text-sm text-gray-700
                           hover:bg-green-50 hover:text-green-900 transition-colors"} text])
 
 (defn menu []
@@ -39,23 +42,24 @@
              :onclick "toggleMenu(this)"}
     (menu-icon)]
 
-   [:div {:class "hidden absolute top-full left-0 mt-2 w-48
+   [:div {:id "menu" :class "hidden absolute top-full left-0 mt-2 w-48
                  bg-white rounded-lg shadow-lg border border-gray-200 z-50"}
     [:div {:class "py-1"}
      (menu-item "/" "Home")
      (menu-item "/news" "News")
      (menu-item "/about" "About")]]])
 
-(defn github-login-link []
-  (let [{:keys [auth-url client-id redirect-uri scope]} (:github app-config)]
-    [:a {:title "Login with GitHub"
-         :href (str auth-url
-                    "?client_id=" client-id
-                    "&redirect_uri=" redirect-uri
-                    "&scope=" scope)}
-     (github-login-icon)]))
+(defn user-login [user]
+  (when (-> app-config :app :features :auth)
+    (if-not user
+      [:a {:title "Login with GitHub" :href "/auth/github"}
+       (github-login-icon)]
 
-(def header
+      [:div {:class "w-8 h-8 rounded-full overflow-hidden"}
+       [:a {:href (:url user) :class "block w-full h-full"}
+        [:img {:src (:avatar_url user)}]]])))
+
+(defn header [{:keys [user]}]
   [:header {:style (str bg-color "border-bottom: 1px solid #c1d5c9")}
    [:div {:class "max-w-4xl mx-auto px-4 py-6"}
     [:div {:class "flex items-center justify-between relative"}
@@ -73,7 +77,7 @@
       [:h1 {:class "text-2xl font-bold text-green-900"} "Neovim Plugins Catalog"]]
 
      [:div {:class "flex items-center space-x-4"}
-      ; (github-login-link)
+      (user-login user)
 
       [:a {:title "Nvim.app on GitHub"
            :class "text-gray-600 hover:text-gray-900"
@@ -86,10 +90,19 @@
     [:div {:class "text-center"}
      [:h2 {:class "text-2xl font-bold text-gray-900 tracking-wider"}]]]])
 
-(defn base-layout [body]
-  (html5
-   (head)
-   [:body {:style "background-color: #e7eee8; min-height: 100vh"}
-    header
-    body]
-   footer))
+(defn base-layout
+  ([body]
+   (base-layout {} nil body))
+  ([request body]
+   (base-layout {} request body))
+  ([{:keys [head_include body_include]} request body]
+   (html5
+    (head head_include)
+
+    [:body {:style "background-color: #e7eee8; min-height: 100vh"}
+     (when body_include body_include)
+
+     (header request)
+     body]
+
+    footer)))
