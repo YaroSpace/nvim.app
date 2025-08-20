@@ -45,7 +45,7 @@
   {:name :repos-page
    :enter
    (fn [{:keys [request] :as context}]
-     (let [{:keys [accept query-params session]} request
+     (let [{:keys [query-params session]} request
            {:keys [q category sort page limit] :or {page "1" limit "10"}} query-params
 
            page   (parse-long page)
@@ -59,13 +59,13 @@
 
        (assoc context :response
               {:status  200
-               :body (cond-> matched
-                       (not= (:type accept) "application/json")
-                       (repos/plugins-list (assoc query-params
-                                                  :categories categories
-                                                  :page page
-                                                  :limit limit
-                                                  :total total)))
+               :body (repos/plugins-list request
+                                         matched
+                                         (assoc query-params
+                                                :categories categories
+                                                :page page
+                                                :limit limit
+                                                :total total))
                :session (assoc session :params query-params)})))})
 
 (def repos-index
