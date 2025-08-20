@@ -26,6 +26,6 @@
 
  :app     {:env #profile {:default :prod :dev :dev}
            :update-on-start? #profile {:default false :dev false}
-           :features {:auth #profile {:default false :dev false}}}}
+           :features {:auth #profile {:default false :dev true}}}}
 
 

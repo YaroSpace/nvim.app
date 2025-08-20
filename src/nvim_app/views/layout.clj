@@ -79,10 +79,10 @@
      [:div {:class "flex items-center space-x-4"}
       (user-login user)
 
-      [:a {:title "Nvim.app on GitHub"
-           :class "text-gray-600 hover:text-gray-900"
-           :href "https://github.com/yarospace/nvim.app"}
-       (github-icon)]]]]])
+      #_[:a {:title "Nvim.app on GitHub"
+             :class "text-gray-600 hover:text-gray-900"
+             :href "https://github.com/yarospace/nvim.app"}
+         (github-icon)]]]]])
 
 (def footer
   [:footer {:style (str bg-color "border-top: 1px solid #c1d5c9; margin-top: 0rem")}

@@ -2,6 +2,7 @@
   (:require
    [nvim-app.views.assets :refer :all]
    [nvim-app.views.layout :refer [base-layout]]
+   [nvim-app.components.app :refer [dev?]]
    [hiccup2.core :refer [html]]
    [hiccup.page :refer [include-js]]
    [hiccup.util :as u]
@@ -39,25 +40,25 @@
 (def hx-include "#search-input, #limit-input, #category, #sort, #group")
 
 (defn topic-color [topic]
-  (let [has? (fn [topics] (some #(str/includes? topic %) topics))]
-    (format " %s "
-            (cond
-              (has? ["lsp" "telescope"]) "bg-yellow-100"
-              (has? ["ai" "llm" "lua"]) "bg-orange-100"
-              (has? ["colorscheme" "theme"]) "bg-red-100"
-              (has? ["markdown" "treesitter"]) "bg-cyan-100"
-              (has? ["config" "dotfiles"]) "bg-indigo-100"
-              (has? ["python" "rust"]) "bg-lime-100"
-              (has? ["neovim" "nvim"]) "bg-blue-100"
-              (has? ["vim" "plugin" "terminal"]) "bg-purple-100"
-              :else " bg-green-100 "))))
+  (let [colors [["bg-yellow-100" "lsp" "telescope"]
+                ["bg-orange-100" "ai" "llm" "lua"]
+                ["bg-red-100" "colorscheme" "theme"]
+                ["bg-cyan-100" "markdown" "treesitter"]
+                ["bg-indigo-100" "config" "dotfiles"]
+                ["bg-lime-100" "python" "rust"]
+                ["bg-blue-100" "neovim" "nvim"]
+                ["bg-purple-100" "vim" "plugin" "terminal"]]]
+
+    (or (some (fn [[color & topics]]
+                (when (some #(str/includes? topic %) topics)
+                  (format " %s " color)))
+              colors)
+        " bg-green-100 ")))
 
 (defn search-input [url query]
   [:div {:class "relative"}
    [:form {:id "search-form" :class "flex px-4 items-center gap-2 w-full"
-           :hx-get url
-           :hx-include hx-include
-           :hx-target "#plugins-list"
+           :hx-get url :hx-include hx-include :hx-target "#plugins-list"
            :hx-trigger "submit, keyup changed delay:300ms from:input[name='q']"}
 
     [:input {:class "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none 
@@ -119,8 +120,7 @@
                       bg-transparent border border-green-500 rounded-lg hover:bg-green-50
                       focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent 
                       disabled:opacity-50 disabled:cursor-not-allowed"
-            :hx-include hx-include
-            :hx-target "#plugins-list"
+            :hx-include hx-include :hx-target "#plugins-list"
             :hx-on:htmx:before-request "document.documentElement.scrollIntoView({ behavior: 'smooth'});"
             :hx-indicator "#indicator"}])
 
@@ -143,14 +143,9 @@
          :style (str bg-color "border-radius: 8px;")}
 
    [:div {:class "flex flex-wrap gap-y-4 justify-center items-center space-x-2 text-green-700"}
-    (group-icon)
-    (group-dropdown url group)
-
-    (sort-icon)
-    (sort-dropdown url sort)
-
-    (category-icon)
-    (category-dropdown url category categories)]
+    (group-icon) (group-dropdown url group)
+    (sort-icon) (sort-dropdown url sort)
+    (category-icon) (category-dropdown url category categories)]
 
    [:div {:class "flex items-center space-x-2"}
     [:div {:class "text-sm text-green-700 font-medium mr-2"}
@@ -162,9 +157,7 @@
                      focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
              :type "number" :min "1" :max "100" :value (or limit "10")
              :id "limit-input" :name "limit"
-             :hx-get url
-             :hx-include hx-include
-             :hx-target "#plugins-list"}]
+             :hx-get url :hx-include hx-include :hx-target "#plugins-list"}]
 
     [:input {:id "current-page" :href "#" :class "hidden"
              :hx-get (u/url url {:page page}) :hx-include hx-include :hx-target "#plugins-list"}]
@@ -184,8 +177,14 @@
   [:span {:class (str "inline-flex items-center px-2 py-1 rounded-full text-xs
                   font-medium" (topic-color topic) "green-100 text-gray-700")} topic])
 
-(defn plugin-card [{:keys [url name description topics created updated
-                           stars stars_week stars_month]}]
+(defn star [number icon color title]
+  (when (pos? number)
+    [:div {:title title :class (str "flex items-center space-x-1 py-2 " color)}
+     (icon)
+     [:span {:class "text-sm text-green-900"} (number->str number)]]))
+
+(defn plugin-card [user {:keys [url name description topics created updated
+                                stars stars_week stars_month]}]
   [:div {:class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
          :style bg-color}
 
@@ -203,30 +202,20 @@
        [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
         (map plugin-topic (str/split topics #" "))])
 
-     [:div {:class "mt-4"}
-      [:div {:class "text-sm text-gray-500 flex flex-col sm:flex-row sm:space-x-4"}
-       [:span "Created: " (date->str created)]
-       [:span "Last updated: " (date->str updated)]]]]
+     [:div {:class "text-sm text-gray-500 flex flex-col sm:flex-row sm:space-x-4 mt-4"}
+      [:span "Created: " (date->str created)]
+      [:span "Last updated: " (date->str updated)]
+      (when user
+        [:a {:title "Add to watch list" :href "#" :class "flex items-center mt-auto space-x-1 text-green-700"}
+         (watch-icon)])]]
 
-    (when (> stars 0)
+    (when (pos? stars)
       [:div {:class "flex flex-col items-end pt-2 pl-2"}
-       [:div {:class "flex items-center space-x-1 py-2 text-yellow-500"}
-        (star-icon)
-        [:span {:class "text-sm text-green-900"} (number->str stars)]]
+       (star stars star-icon "text-yellow-500" "Total")
+       (star (- stars stars_week) growth-icon-w "text-orange-500" "Stars since beginning of the week")
+       (star (- stars stars_month) growth-icon-m "text-red-500" "Stars since beginning of the month")])]])
 
-       (let [stars-week (- stars stars_week)]
-         (when (> stars-week 0)
-           [:div {:title "since beginning of the week" :class "flex items-center space-x-1 py-2 text-orange-500"}
-            (growth-icon-w)
-            [:span {:class "text-sm text-green-900"} (number->str stars-week)]]))
-
-       (let [stars-month (- stars stars_month)]
-         (when (> stars-month 0)
-           [:div {:title "since beginning of the month" :class "flex items-center space-x-1 py-2 text-red-500"}
-            (growth-icon-m)
-            [:span {:class "text-sm text-green-900"} (number->str stars-month)]]))])]])
-
-(defn category-section [category-name plugins]
+(defn category-section [user category-name plugins]
   [:div {:class "mb-8"}
    [:h2
     [:span {:class "text-xl font-semibold text-green-600"} "Category: "]
@@ -234,12 +223,12 @@
     [:br] [:br]]
 
    [:div {:class "space-y-6"}
-    (map (fn [plugin] (plugin-card plugin)) plugins)]])
+    (map (fn [plugin] (plugin-card user plugin)) plugins)]])
 
-(defn plugins-list [plugins {:keys [group page total] :as params}]
+(defn plugins-list [request plugins {:keys [group page total] :as params}]
   (str
    (html
-    (let [url "/repos-page"]
+    (let [url "/repos-page" user (:user request)]
       [:div {:class "space-y-6"}
        (controls-and-pagination url params)
 
@@ -249,22 +238,20 @@
                        {"-" plugins})]
 
          (for [[group plugins] grouped]
-           (category-section (or group "-") plugins)))
+           (category-section user (or group "-") plugins)))
 
        (pagination-btm url page total)]))))
 
 (defn main [request params]
   (let [{:keys [q]} params url "/repos-page"]
     (base-layout
-     {:head_include (include-js "/js/repos.js")}
+     {:head_include (when-not (dev?) (include-js "/js/repos.js"))}
      request
      [:div {:class "max-w-4xl mx-auto px-4 py-6"}
       (search-input url q)
       [:img {:id "indicator" :class "htmx-indicator" :src "/images/loader.svg"
              :style "display: none;"}]
 
-      [:div {:class "max-w-4xl mx-auto px-4 pb-6"
-             :hx-get (u/url url params)
-             :hx-target "#plugins-list"
-             :hx-trigger "load"
-             :id "plugins-list"}]])))
+      [:div {:id "plugins-list" :class "max-w-4xl mx-auto px-4 pb-6"
+             :hx-get (u/url url params) :hx-target "#plugins-list"
+             :hx-trigger "load"}]])))

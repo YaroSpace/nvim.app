@@ -1,6 +1,6 @@
 (ns nvim-app.components.pedestal.core
   (:require
-   [nvim-app.components.app :as app]
+   [nvim-app.components.app :refer [app-config] :as app]
    [nvim-app.db.core :as db]
    [nvim-app.components.pedestal.routes :as r]
    [nvim-app.components.pedestal.handlers :as h]
@@ -102,7 +102,8 @@
   (interceptor/interceptor
    {:name ::inject-auth
     :enter (fn [{:keys [request] :as context}]
-             (if-let [user (-> request :session :user)]
+             (if-let [user (and (-> app-config :app :features :auth)
+                                (-> request :session :user))]
                (assoc-in context [:request :user] (db/select-one :users :id user))
                context))}))
 
