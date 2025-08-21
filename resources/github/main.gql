@@ -5,6 +5,7 @@ query {
         ... on Repository {
           name
           createdAt
+          isArchived
           owner {
             login
           }

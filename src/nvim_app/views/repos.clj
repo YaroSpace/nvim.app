@@ -36,7 +36,7 @@
   (vec (concat (update el 1 #(merge-with (fn [a b] (str/join " " [a b])) % opts))
                (when body body))))
 
-(def bg-color "background-color:#d3e4db; ")
+(def bg-color " background-color:#d3e4db; ")
 (def hx-include "#search-input, #limit-input, #category, #sort, #group")
 
 (defn topic-color [topic]
@@ -104,11 +104,13 @@
     [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
      (chevron-down-icon)]]])
 
-(defn category-dropdown [url category categories]
+(defn category-dropdown [user url category categories]
   [:div {:class "relative"}
    [:div {:class "flex items-center space-x-1"}
     (el-with (dropdown-select url) {:id "category" :name "category" :title "Filter by" :class "w-auto sm:w-34"}
              [:option {:value "" :selected (= "" category)} "-"]
+             (when user [:option {:value "watched" :selected (= "watched" category)} "*Watched*"])
+
              (for [name categories]
                [:option {:value name :selected (= name category)} name]))
 
@@ -117,8 +119,8 @@
 
 (defn pagination-btn []
   [:button {:class "px-3 py-2 text-sm font-medium text-green-700
-                      bg-transparent border border-green-500 rounded-lg hover:bg-green-50
-                      focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent 
+                      bg-transparent border border-green-500 rounded-lg hover:bg-green-50 active:bg-green-50
+                      focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent focus: bg-green-50 
                       disabled:opacity-50 disabled:cursor-not-allowed"
             :hx-include hx-include :hx-target "#plugins-list"
             :hx-on:htmx:before-request "document.documentElement.scrollIntoView({ behavior: 'smooth'});"
@@ -136,8 +138,8 @@
             :disabled (>= page total)}
            (chevron-right-icon)))
 
-(defn controls-and-pagination [url {:keys [group sort category categories
-                                           page total limit]}]
+(defn controls-and-pagination [user url {:keys [group sort category categories
+                                                page total limit]}]
   [:div {:class "flex flex-col md:flex-row items-center justify-between 
                  mt-4 mb-4 py-3 px-4 gap-4 max-w-4xl mx-auto"
          :style (str bg-color "border-radius: 8px;")}
@@ -145,18 +147,18 @@
    [:div {:class "flex flex-wrap gap-y-4 justify-center items-center space-x-2 text-green-700"}
     (group-icon) (group-dropdown url group)
     (sort-icon) (sort-dropdown url sort)
-    (category-icon) (category-dropdown url category categories)]
+    (category-icon) (category-dropdown user url category categories)]
 
    [:div {:class "flex items-center space-x-2"}
-    [:div {:class "text-sm text-green-700 font-medium mr-2"}
+    [:div {:class "text-sm font-light text-green-700 font-medium mr-2"}
      (str "Page " page " / " total)]
 
     (pagination-btn-previous url page)
 
-    [:input {:class "w-16 px-2 py-1.5 bg-transparent border border-green-500 rounded-lg text-sm text-center
+    [:input {:id "limit-input" :name "limit" :title "Results per page"
+             :class "w-16 px-2 py-1.5 bg-transparent border border-green-500 rounded-lg text-sm text-center
                      focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
              :type "number" :min "1" :max "100" :value (or limit "10")
-             :id "limit-input" :name "limit"
              :hx-get url :hx-include hx-include :hx-target "#plugins-list"}]
 
     [:input {:id "current-page" :href "#" :class "hidden"
@@ -168,7 +170,7 @@
   [:div {:class "flex items-center justify-center space-x-2"}
    (pagination-btn-previous url page)
 
-   [:div {:class "text-sm text-green-700 font-medium px-2"}
+   [:div {:class "text-sm font-light text-green-700 font-medium px-2"}
     (str "Page " page " out of " total)]
 
    (pagination-btn-next url page total)])
@@ -183,8 +185,8 @@
      (icon)
      [:span {:class "text-sm text-green-900"} (number->str number)]]))
 
-(defn plugin-card [user {:keys [url name description topics created updated
-                                stars stars_week stars_month]}]
+(defn plugin-card [user {:keys [repo url name description topics created updated
+                                stars stars_week stars_month watched]}]
   [:div {:class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
          :style bg-color}
 
@@ -204,10 +206,13 @@
 
      [:div {:class "text-sm text-gray-500 flex flex-col sm:flex-row sm:space-x-4 mt-4"}
       [:span "Created: " (date->str created)]
-      [:span "Last updated: " (date->str updated)]
-      (when user
-        [:a {:title "Add to watch list" :href "#" :class "flex items-center mt-auto space-x-1 text-green-700"}
-         (watch-icon)])]]
+      [:span {:class "flex"} "Last updated: " (date->str updated)
+       (when user
+         [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
+                   :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
+                               (if watched "text-blue-700" "text-green-700"))
+                   :hx-get (u/url "/user/watch" {:repo repo}) :hx-target "#plugins-list" :hx-include hx-include}
+          (watch-icon)])]]]
 
     (when (pos? stars)
       [:div {:class "flex flex-col items-end pt-2 pl-2"}
@@ -215,30 +220,46 @@
        (star (- stars stars_week) growth-icon-w "text-orange-500" "Stars since beginning of the week")
        (star (- stars stars_month) growth-icon-m "text-red-500" "Stars since beginning of the month")])]])
 
-(defn category-section [user category-name plugins]
+(defn category-section [user n show-category? group-name plugins]
   [:div {:class "mb-8"}
-   [:h2
-    [:span {:class "text-xl font-semibold text-green-600"} "Category: "]
-    [:span {:class "text-xl font-semibold text-blue-600"} category-name]
-    [:br] [:br]]
+   [:div {:class "flex items-center justify-between mb-4"}
+    [:h2 {:class (when-not show-category? "invisible")}
+     [:span {:class "text-xl font-semibold text-green-600"} "Category: "]
+     [:span {:class "text-xl font-semibold text-blue-600"} group-name]]
+
+    (when (= 0 n)
+      [:div {:class "flex items-center space-x-2"}
+       [:button {:class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
+                       focus:outline-none focus:ring-2 focus:ring-green-500
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+                 :title "Compact view"
+                 :disabled true}
+        (compact-view-icon)]
+       [:button {:class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
+                       focus:outline-none focus:ring-2 focus:ring-green-500
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+                 :title "Full view"
+                 :disabled true}
+        (full-view-icon)]])]
 
    [:div {:class "space-y-6"}
     (map (fn [plugin] (plugin-card user plugin)) plugins)]])
 
-(defn plugins-list [request plugins {:keys [group page total] :as params}]
+(defn plugins-list [request plugins {:keys [group category page total] :as params}]
   (str
    (html
     (let [url "/repos-page" user (:user request)]
       [:div {:class "space-y-6"}
-       (controls-and-pagination url params)
+       (controls-and-pagination user url params)
 
-       (let [grouped (case group
-                       "category" (into (sorted-map) (group-by :category plugins))
-                       "updated" (group-by-date plugins)
-                       {"-" plugins})]
+       (let [show-category? (or (= "category" group) (seq category))
+             grouped (cond
+                       (= "updated" group) (group-by-date plugins)
+                       show-category? (into (sorted-map) (group-by :category plugins))
+                       :else {"-" plugins})]
 
-         (for [[group plugins] grouped]
-           (category-section user (or group "-") plugins)))
+         (for [[n [group-name plugins]] (map-indexed vector grouped)]
+           (category-section user n show-category? (or group-name "-") plugins)))
 
        (pagination-btm url page total)]))))
 
