@@ -8,7 +8,7 @@
    [clojure.tools.logging :as log]))
 
 (defn app-stats []
-  {:records (db/count :repos)
+  {:records (count (db/select :repos))
    :updates (sched/completed-tasks)})
 
 (def app-config {})

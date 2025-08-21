@@ -17,18 +17,26 @@
         "updated" [[:updated :desc]]
         "created" [[:created :desc]])))
 
+(defn user-watched [user]
+  (let [watched (:watched (db/select-one :users :id (:id user)))]
+    [:= :repo [:any (into-array String watched)]]))
+
 (defn get-repos
   ([]
    (get-repos nil nil nil nil))
-  ([category sort offset limit]
+  ([category sort offset limit & [user]]
    (db/query!
     (cond-> {:select [:* [:repos.id :id] [:repos.name :name] [:categories.name :category]
-                      [[:over [[:count :*] {} :total]]]]
+                      [[:over [[:count :*] {} :total]]]
+                      (when user [(user-watched user) :watched])]
              :from   [:repos]
              :left-join   [:categories [:= :repos.category_id :categories.id]]
              :order-by (concat (order-by sort)
                                [[:repos.name :asc]])}
-      (seq category) (assoc :where [:= :categories.name category])
+      (and (seq category)
+           (not= "watched" category)) (assoc :where [:= :categories.name category])
+      (and user
+           (= "watched" category)) (assoc :where (user-watched user))
       offset (assoc :offset offset)
       limit (assoc :limit limit)))))
 
@@ -65,12 +73,13 @@
 (defn search-repos
   ([]
    (search-repos "" nil nil nil nil))
-  ([q category sort offset limit]
+  ([q category sort offset limit & [user]]
    (if (str/blank? q)
-     (get-repos category sort offset limit)
+     (get-repos category sort offset limit user)
      (db/query!
       {:select [:* [:repos.id :id] [:repos.name :name] [:categories.name :category]
-                [[:over [[:count :*] {} :total]]]]
+                [[:over [[:count :*] {} :total]]]
+                (when user [(user-watched user) :watched])]
        :from   [:repos]
        :left-join   [:categories [:= :repos.category_id :categories.id]]
 

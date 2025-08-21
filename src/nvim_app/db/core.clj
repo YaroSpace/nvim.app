@@ -10,34 +10,26 @@
   (:database-component @app-system-atom))
 
 (defn query!
-  ([sql] (query! (get-ds) sql))
-  ([ds sql]
-   (try
-     (jdbc/execute! ds (sql/format sql))
-     (catch Exception e
-       (let [error (ex-message e)]
-         (log/error "Failed to execute query: " error)
-         (throw e))))))
+  ([sql] (query! (get-ds) sql jdbc/execute!))
+  ([ds sql cmd]
+   (let [raw (sql/format sql)]
+     (try
+       (cmd ds raw)
+       (catch Exception e
+         (let [error (ex-message e)]
+           (log/error "Failed to execute query: " raw error)
+           (tap> [raw e])
+           (throw e)))))))
 
 (defn query-one!
   ([sql] (query-one! (get-ds) sql))
   ([ds sql]
-   (try
-     (jdbc/execute-one! ds (sql/format sql))
-     (catch Exception e
-       (let [error (ex-message e)]
-         (log/error "Failed to execute query: " error)
-         (tap> e)
-         (throw e))))))
-
-(defn count [table]
-  (:count
-   (query-one! {:select [:%count.*] :from [table]})))
+   (query! ds sql jdbc/execute-one!)))
 
 (defn select [table & [key value]]
   (query!
    (cond-> {:select :* :from [table]}
-     (not= :where key) (assoc :where [:= key value])
+     (and key (not= :where key)) (assoc :where [:= key value])
      (= :where key) (assoc :where value))))
 
 (defn select-one [table & [key value]]
@@ -100,7 +92,7 @@
     (migratus.core/pending-list config)))
 
 (comment
-  (migration-create! "user-table-create")
+  (migration-create! "user-table-add-watched")
   (migration-up!)
   (migration-down!)
   (do

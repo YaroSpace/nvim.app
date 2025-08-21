@@ -3,6 +3,8 @@ ID%s: repository(owner: "%s", name: "%s") {
   description
   owner { login }
   name
+  createdAt
+  isArchived
   url
   repositoryTopics(first: 20) {
     nodes {

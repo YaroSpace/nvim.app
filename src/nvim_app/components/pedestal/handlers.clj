@@ -3,11 +3,13 @@
    [nvim-app.components.app :as app]
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
+   [nvim-app.db.user :as users]
    [nvim-app.views.repos :as repos]
    [nvim-app.views.news :as news]
    [nvim-app.views.about :as about]
    [nvim-app.views.not-found :as not-found]
-   [nvim-app.utils :as u]))
+   [nvim-app.utils :as u]
+   [io.pedestal.http.route :as route]))
    ; [schema.core :as s]
 
 (defn response
@@ -20,6 +22,11 @@
      response (merge response))))
 
 (def ok (partial response 200))
+
+(defn redirect [location & [response]]
+  (cond-> {:status 302
+           :headers {"Location" location}}
+    response (merge response)))
 
 (defn not-found [context]
   (assoc context :response
@@ -45,14 +52,14 @@
   {:name :repos-page
    :enter
    (fn [{:keys [request] :as context}]
-     (let [{:keys [query-params session]} request
+     (let [{:keys [query-params session user]} request
            {:keys [q category sort page limit] :or {page "1" limit "10"}} query-params
 
            page   (parse-long page)
            limit  (parse-long limit)
            offset (* (dec page) limit)
 
-           matched (repo/search-repos q category sort offset limit)
+           matched (repo/search-repos q category sort offset limit user)
            categories (map :name (db/select :categories))
 
            total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
@@ -73,21 +80,22 @@
    :enter (fn [{:keys [request] :as context}]
             (assoc context :response
                    {:status 200
-                    :body (repos/main request
-                                      (-> request :session :params))}))})
+                    :body (repos/main request (-> request :session :params))}))})
 
 (def github-login
   {:name :github-login
    :enter
    (fn [{:keys [request] :as context}]
      (if (:user request)
-       (assoc context :response {:status 204})
+       (assoc context :response
+              {:status 204})
 
        (let [{:keys [auth-url client-id redirect-uri scope]} (:github app/app-config)]
          (assoc context :response
-                {:status 302
-                 :headers {"Location" (str auth-url "?client_id=" client-id "&redirect_uri="
-                                           redirect-uri "&scope=" scope)}}))))})
+                (redirect (str auth-url
+                               "?client_id=" client-id
+                               "&redirect_uri=" redirect-uri
+                               "&scope=" scope))))))})
 
 (def github-callback
   {:name :github-login
@@ -123,11 +131,21 @@
                                           :url html_url
                                           :avatar_url avatar_url}]))]
 
-       (assoc context :response {:status 302
-                                 :headers {"Location" "/"}
-                                 :session (assoc session :user (:id user))})))})
+       (assoc context :response
+              (redirect "/" {:session (assoc session :user
+                                             (:id user))}))))})
 
 ; TODO: add error handling for auth calls
 
-(comment
-  (db/select :users))
+(def user-watch-toggle
+  {:name :watch-toggle
+   :enter
+   (fn [{:keys [request] :as context}]
+     (let [{:keys [user query-params]} request]
+       (when-let [repo  (and user (:repo query-params))]
+         (users/toggle-watched! (:id user) repo))
+
+       (assoc context :response
+              (redirect (route/url-for :repos-page
+                                       :params query-params)
+                        {:status 303}))))})

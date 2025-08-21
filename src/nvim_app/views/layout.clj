@@ -4,7 +4,9 @@
    [nvim-app.views.assets :refer :all]
    [hiccup.page :refer [html5 include-js include-css]]))
 
-(def bg-color "background-color:#d3e4db; ")
+(def header-color " background-color:#d3e4db; ")
+(def border-color "#c1d5c9")
+(def body-color " background-color: #e7eee8; ")
 
 (defn google-analytics []
   [:div
@@ -50,17 +52,16 @@
      (menu-item "/about" "About")]]])
 
 (defn user-login [user]
-  (when (-> app-config :app :features :auth)
-    (if-not user
-      [:a {:title "Login with GitHub" :href "/auth/github"}
-       (github-login-icon)]
+  (if-not user
+    [:a {:title "Login with GitHub" :href "/auth/github"}
+     (github-icon)]
 
-      [:div {:class "w-8 h-8 rounded-full overflow-hidden"}
-       [:a {:href (:url user) :class "block w-full h-full"}
-        [:img {:src (:avatar_url user)}]]])))
+    [:div {:class "w-8 h-8 rounded-full overflow-hidden"}
+     [:a {:href (:url user) :class "block w-full h-full"}
+      [:img {:src (:avatar_url user)}]]]))
 
 (defn header [{:keys [user]}]
-  [:header {:style (str bg-color "border-bottom: 1px solid #c1d5c9")}
+  [:header {:style (str header-color "border-bottom: 1px solid " border-color)}
    [:div {:class "max-w-4xl mx-auto px-4 py-6"}
     [:div {:class "flex items-center justify-between relative"}
      (menu)
@@ -77,15 +78,16 @@
       [:h1 {:class "text-2xl font-bold text-green-900"} "Neovim Plugins Catalog"]]
 
      [:div {:class "flex items-center space-x-4"}
-      (user-login user)
+      (if (-> app-config :app :features :auth)
+        (user-login user)
 
-      #_[:a {:title "Nvim.app on GitHub"
+        [:a {:title "Nvim.app on GitHub"
              :class "text-gray-600 hover:text-gray-900"
              :href "https://github.com/yarospace/nvim.app"}
-         (github-icon)]]]]])
+         (github-icon)])]]]])
 
 (def footer
-  [:footer {:style (str bg-color "border-top: 1px solid #c1d5c9; margin-top: 0rem")}
+  [:footer {:style (str header-color "margin-top: 0rem; border-top: 1px solid " border-color)}
    [:div {:class "max-w-4xl mx-auto px-4 py-8"}
     [:div {:class "text-center"}
      [:h2 {:class "text-2xl font-bold text-gray-900 tracking-wider"}]]]])
@@ -99,7 +101,7 @@
    (html5
     (head head_include)
 
-    [:body {:style "background-color: #e7eee8; min-height: 100vh"}
+    [:body {:style (str "min-height: 100vh;" body-color)}
      (when body_include body_include)
 
      (header request)

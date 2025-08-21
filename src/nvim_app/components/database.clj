@@ -7,9 +7,15 @@
    [hikari-cp.core :refer [make-datasource]]
    [clojure.tools.logging :as log])
   (:import
+   [java.sql Array]
    [java.time LocalTime]
    [java.time.format  DateTimeFormatter]
    [com.zaxxer.hikari HikariDataSource]))
+
+(extend-protocol rs/ReadableColumn
+  Array
+  (read-column-by-label [^Array v _]    (vec (.getArray v)))
+  (read-column-by-index [^Array v _ _]  (vec (.getArray v))))
 
 (defn db-logger
   ([_ params]
