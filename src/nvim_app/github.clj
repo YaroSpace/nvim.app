@@ -184,10 +184,12 @@
          end-year (+ 1 (mod (.getYear (java.time.LocalDate/now)) 100))
          start-time (System/currentTimeMillis)
          result-chs (mapcat (fn [term]
-                              (map #(update-github-repos!
-                                     (format "%s created:20%s-01-01..20%s-01-01"
-                                             term % (inc %)))
-                                   (range 16 end-year)))
+                              (conj
+                               (map #(update-github-repos!
+                                      (format "%s created:20%s-01-01..20%s-01-01"
+                                              term % (inc %)))
+                                    (range 16 end-year))
+                               (update-github-repos! (format "%s created:<2016-01-01" term))))
                             search-terms)]
 
      (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} (a/merge result-chs)))
@@ -332,7 +334,7 @@
   (update-github-data!)
   (delete-duplicate-repos!))
 
-;; TODO: wrap async ops in try/catch and handle exceptions and close channels and test retries
+;; TODO: wrap async ops in try/catch, handle exceptions and close channels, test retries
 
 (comment
   (update-all!)
@@ -340,7 +342,7 @@
   (db/select :repos
              :where [:not= :category_id nil])
   (a/go (update-all!))
-  (a/<!! (search-github-async "topic:neovim topic:plugin"))
+  (a/<!! (search-github-async "sqlite.lua"))
   (sort (map ns-name (all-ns)))
   (->> (db/select :repos)
        (mapcat #(str/split (:topics %) #" "))
