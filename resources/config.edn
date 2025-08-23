@@ -7,7 +7,7 @@
  :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
            :username #or [#env DATABASE_USER "nvim"]
            :password #or [#env DATABASE_PASSWORD "nvim"]
-           :logging? #profile {:default false :dev false}}
+           :logging? #profile {:default false :dev true}}
 
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
            :enable #or [#env NVIM_APP_REPL_ENABLE false]}

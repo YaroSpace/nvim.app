@@ -51,8 +51,8 @@
       :values [(assoc repo  :repo (str owner "/" name)
                       :description (or description "")
                       :stars (or stars 0)
-                      :stars_week (or stars 0)
-                      :stars_month (or stars 0)
+                      :stars_week 10000
+                      :stars_month 10000
                       :topics (str/join " " (or topics ""))
                       :created (or created default-date)
                       :updated (or updated default-date))]
@@ -60,6 +60,7 @@
       :on-conflict [:repo]
       :do-update-set (cond-> {:topics (str/join " " (or topics ""))
                               :updated (or updated default-date)
+                              :created (or created default-date)
                               :description (or description "")
                               :stars (or stars 0)}
                        stars_week (assoc :stars_week stars_week)
