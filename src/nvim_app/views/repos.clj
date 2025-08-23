@@ -185,8 +185,10 @@
      (icon)
      [:span {:class "text-sm text-green-900"} (number->str number)]]))
 
-(defn plugin-card [user {:keys [repo url name description topics created updated
-                                stars stars_week stars_month watched]}]
+(defn plugin-card [user {:keys [repo url owner name
+                                description topics created updated
+                                stars stars_week stars_month
+                                watched]}]
   [:div {:class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
          :style bg-color}
 
@@ -205,14 +207,28 @@
         (map plugin-topic (str/split topics #" "))])
 
      [:div {:class "text-sm text-gray-500 flex flex-col sm:flex-row sm:space-x-4 mt-4"}
-      [:span "Created: " (date->str created)]
-      [:span {:class "flex"} "Last updated: " (date->str updated)
-       (when user
-         [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
-                   :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
-                               (if watched "text-blue-700" "text-green-700"))
-                   :hx-get (u/url "/user/watch" {:repo repo}) :hx-target "#plugins-list" :hx-include hx-include}
-          (watch-icon)])]]]
+      (let [created (date->str created)]
+        (when (not= "1970-01-01" created)
+          [:span "Created: " created]))
+
+      (let [updated (date->str updated)]
+        (when (not= "1970-01-01" updated)
+          [:span "Last updated: " updated])
+
+        (when user
+          [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
+                    :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
+                                (if watched "text-blue-700" "text-green-700"))
+                    :hx-get (u/url "/user/watch" {:repo repo}) :hx-target "#plugins-list" :hx-include hx-include}
+           (watch-icon)])
+
+        (when (or (= (:username user) owner)
+                  (= (:role user) "admin"))
+          [:button {:title "Edit"
+                    :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
+                                (if watched "text-blue-700" "text-green-700"))
+                    :hx-get (u/url "/user/watch" {:repo repo}) :hx-target "#plugins-list" :hx-include hx-include}
+           (edit-icon)]))]]
 
     (when (pos? stars)
       [:div {:class "flex flex-col items-end pt-2 pl-2"}
@@ -220,10 +236,10 @@
        (star (- stars stars_week) growth-icon-w "text-orange-500" "Stars since beginning of the week")
        (star (- stars stars_month) growth-icon-m "text-red-500" "Stars since beginning of the month")])]])
 
-(defn category-section [user n show-category? group-name plugins]
+(defn category-section [user n show-group? group-name plugins]
   [:div {:class "mb-8"}
    [:div {:class "flex items-center justify-between mb-4"}
-    [:h2 {:class (when-not show-category? "invisible")}
+    [:h2 {:class (when-not show-group? "invisible")}
      [:span {:class "text-xl font-semibold text-green-600"} "Category: "]
      [:span {:class "text-xl font-semibold text-blue-600"} group-name]]
 
@@ -252,14 +268,14 @@
       [:div {:class "space-y-6"}
        (controls-and-pagination user url params)
 
-       (let [show-category? (or (= "category" group) (seq category))
+       (let [show-group? (or (= "category" group) (seq category))
              grouped (cond
                        (= "updated" group) (group-by-date plugins)
-                       show-category? (into (sorted-map) (group-by :category plugins))
+                       show-group? (into (sorted-map) (group-by :category plugins))
                        :else {"-" plugins})]
 
          (for [[n [group-name plugins]] (map-indexed vector grouped)]
-           (category-section user n show-category? (or group-name "-") plugins)))
+           (category-section user n show-group? (or group-name "-") plugins)))
 
        (pagination-btm url page total)]))))
 
