@@ -99,4 +99,6 @@
   (migration-down!)
   (do
     (reset!!)
-    (migration-up!)))
+    (migration-up!))
+  (select :users)
+  (update! :users :values {:role "admin"} :where [:id 1]))

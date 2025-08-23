@@ -10,8 +10,12 @@
    [io.pedestal.http.content-negotiation :as content-negotiation]
    [ring.middleware.session.cookie :refer [cookie-store]]
    [cheshire.core :as json]
+   [cheshire.generate :refer [add-encoder encode-str]]
    [clojure.tools.logging :as log]
-   [clojure.string :as str]))
+   [clojure.string :as str])
+  (:import [org.postgresql.util PGobject]))
+
+(add-encoder PGobject encode-str)
 
 (def CSP-policy
   (str/join "; " ["default-src 'self'"
