@@ -8,7 +8,8 @@
    [clojure.string :as str]
    [rebel-readline.clojure.main :as main]
    [puget.printer :as puget]
-   [hashp.preload])
+   [hashp.preload]
+   [user.java :refer :all])
 
   (:import
    [ch.qos.logback.classic Level]
@@ -99,7 +100,7 @@
       (intern ns-sym 'p> pn>))))
 
 (comment
-  (require-user-helpers)
+  (print-java-members `java.sql.Timestamp :public-only true)
   (discover-test-namespaces)
   (refresh-and-test)
   (send-to-repl {:code "(+ 1 2)" :ns "user" :op "eval"} 7000)

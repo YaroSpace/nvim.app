@@ -21,6 +21,8 @@
            (tap> [raw e])
            (throw e)))))))
 
+; TODO: add exception handling
+
 (defn query-one!
   ([sql] (query-one! (get-ds) sql))
   ([ds sql]

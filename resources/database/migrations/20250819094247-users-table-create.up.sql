@@ -6,4 +6,7 @@ CREATE TABLE users (
     name VARCHAR(50) NOT NULL,
     url VARCHAR(255) NOT NULL,
     avatar_url VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    role VARCHAR(20) DEFAULT 'user' NOT NULL,
+    watched TEXT[] DEFAULT '{}'
+);
