@@ -52,7 +52,7 @@
   {:name :repos-page
    :enter
    (fn [{:keys [request] :as context}]
-     (let [{:keys [query-params session user]} request
+     (let [{:keys [query-params session accept user]} request
            {:keys [q category sort page limit] :or {page "1" limit "10"}} query-params
 
            page   (parse-long page)
@@ -66,13 +66,15 @@
 
        (assoc context :response
               {:status  200
-               :body (repos/plugins-list request
-                                         matched
-                                         (assoc query-params
-                                                :categories categories
-                                                :page page
-                                                :limit limit
-                                                :total total))
+               :body (cond
+                       (= (:field accept) "application/json") matched
+                       :else (repos/plugins-list request
+                                                 matched
+                                                 (assoc query-params
+                                                        :categories categories
+                                                        :page page
+                                                        :limit limit
+                                                        :total total)))
                :session (assoc session :params query-params)})))})
 
 (def repos-index
@@ -149,3 +151,13 @@
               (redirect (route/url-for :repos-page
                                        :params query-params)
                         {:status 303}))))})
+
+(comment
+  "
+```http
+http://localhost:6080/repos-page
+Accept: application/json
+
+```
+")
+
