@@ -1,6 +1,6 @@
 (ns nvim-app.components.pedestal.core
   (:require
-   [nvim-app.components.app :refer [app-config] :as app]
+   [nvim-app.state :refer [app-config dev?]]
    [nvim-app.db.core :as db]
    [nvim-app.components.pedestal.routes :as r]
    [nvim-app.components.pedestal.handlers :as h]
@@ -9,6 +9,7 @@
    [io.pedestal.interceptor :as interceptor]
    [io.pedestal.http.content-negotiation :as content-negotiation]
    [ring.middleware.session.cookie :refer [cookie-store]]
+   [io.pedestal.http.ring-middlewares :as ring-middlewares]
    [cheshire.core :as json]
    [cheshire.generate :refer [add-encoder encode-str]]
    [clojure.tools.logging :as log]
@@ -83,17 +84,17 @@
                    exception-message (.getMessage exception)]
 
                (log/error :msg (str "Exception occurred: " exception-message))
-               (when (app/dev?)
+               (when dev?
                  (tap> exception))
 
                (assoc context :response
                       (cond-> {:status 500
                                :headers {"Content-Type" "application/json"}}
-                        (app/dev?) (assoc :body
-                                          {:error true
-                                           :exception-type exception-type
-                                           :message exception-message
-                                           :exception exception})))))}))
+                        dev? (assoc :body
+                                    {:error true
+                                     :exception-type exception-type
+                                     :message exception-message
+                                     :exception exception})))))}))
 
 (defn inject-dependencies-interceptor
   [component]
@@ -135,6 +136,7 @@
                              concat [exception-interceptor
                                      (inject-dependencies-interceptor this)
                                      auth-interceptor
+                                     (ring-middlewares/flash)
                                      coerce-body-interceptor
                                      content-negotiation-interceptor
                                      csp-interceptor])

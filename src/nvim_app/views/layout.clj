@@ -1,6 +1,6 @@
 (ns nvim-app.views.layout
   (:require
-   [nvim-app.components.app :refer [dev? app-config]]
+   [nvim-app.state :refer [dev? app-config]]
    [nvim-app.views.assets :refer :all]
    [hiccup.page :refer [html5 include-js include-css]]))
 
@@ -19,7 +19,7 @@
    [:meta {:content "width=device-width, initial-scale=1.0" :name "viewport"}]
    [:link {:href "/images/favicon.ico" :rel "icon" :type "image/x-icon"}]
 
-   (when (dev?)
+   (when dev?
      [:meta {:name "htmx-config" :content "{\"responseHandling\": [{\"code\":\".*\", \"swap\": true}]}"}])
 
    [:title "Neovim Plugins Catalog"]
@@ -29,7 +29,7 @@
    (include-css "/css/out.css")
 
    (when head-include head-include)
-   (when-not (dev?) (google-analytics))])
+   (when-not dev? (google-analytics))])
 
 (defn menu-item [href text]
   [:a {:href href :onclick "toggleMenu(this)"
@@ -104,6 +104,8 @@
     [:body {:style (str "min-height: 100vh;" body-color)}
      (when body_include body_include)
 
+     (when-let [flash (:flash request)]
+       (alert flash))
      (header request)
      body]
 

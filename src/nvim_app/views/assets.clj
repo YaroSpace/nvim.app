@@ -1,4 +1,23 @@
-(ns nvim-app.views.assets)
+(ns nvim-app.views.assets
+  (:require [clojure.string :as str]))
+
+(def bg-color " background-color:#d3e4db; ")
+
+(defn topic-color [topic]
+  (let [colors [["bg-yellow-100" "lsp" "telescope"]
+                ["bg-orange-100" "ai" "llm" "lua"]
+                ["bg-red-100" "colorscheme" "theme"]
+                ["bg-cyan-100" "markdown" "treesitter"]
+                ["bg-indigo-100" "config" "dotfiles"]
+                ["bg-lime-100" "python" "rust"]
+                ["bg-blue-100" "neovim" "nvim"]
+                ["bg-purple-100" "vim" "plugin" "terminal"]]]
+
+    (or (some (fn [[color & topics]]
+                (when (some #(str/includes? topic %) topics)
+                  (format " %s " color)))
+              colors)
+        " bg-green-100 ")))
 
 (defn star-icon []
   [:svg {:class "w-4 h-4" :fill "currentColor" :viewBox "0 0 20 20"}
@@ -64,6 +83,10 @@
   [:svg {:class "w-5 h-5" :fill "currentColor" :stroke "currentColor"  :viewBox "0 -960 960 960"}
    [:path {:stroke-width "0.8" :d "M480.09-336.92q67.99 0 115.49-47.59t47.5-115.58q0-67.99-47.59-115.49t-115.58-47.5q-67.99 0-115.49 47.59t-47.5 115.58q0 67.99 47.59 115.49t115.58 47.5ZM480-392q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm.05 172q-137.97 0-251.43-76.12Q115.16-372.23 61.54-500q53.62-127.77 167.02-203.88Q341.97-780 479.95-780q137.97 0 251.43 76.12Q844.84-627.77 898.46-500q-53.62 127.77-167.02 203.88Q618.03-220 480.05-220ZM480-500Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"}]])
 
+(defn save-icon []
+  [:svg {:class "w-5 h-5" :fill "currentColor" :stroke "currentColor"  :viewBox "0 -960 960 960"}
+   [:path {:d "M212.31-140q-29.92 0-51.12-21.19Q140-182.39 140-212.31v-535.38q0-29.92 21.19-51.12Q182.39-820 212.31-820h459.23L820-671.54v196.62q-14.39-5.7-29.69-7.23-15.31-1.54-30.31.3v-164.77L646.62-760H212.31q-5.39 0-8.85 3.46t-3.46 8.85v535.38q0 5.39 3.46 8.85t8.85 3.46h224.61v60H212.31ZM200-760v560-560ZM524.62-60v-105.69l217.15-216.16q7.46-7.46 16.15-10.5 8.69-3.03 17.39-3.03 9.3 0 18.19 3.53 8.88 3.54 15.96 10.62l37 37.38q6.46 7.47 10 16.16Q860-319 860-310.31t-3.23 17.69q-3.23 9-10.31 16.46L630.31-60H524.62Zm287.69-250.31-37-37.38 37 37.38Zm-240 202.62h38l129.84-130.47-18.38-19-18.62-18.76-130.84 130.23v38Zm149.46-149.47-18.62-18.76 37 37.76-18.38-19ZM255.39-564.62h328.45v-139.99H255.39v139.99ZM480-269.23q4.08 0 7.77-.77 3.69-.77 7.38-2.69l81.39-80.39q1.92-4.3 2.69-7.88t.77-8.27q0-41.54-29.23-70.77-29.23-29.23-70.77-29.23-41.54 0-70.77 29.23Q380-410.77 380-369.23q0 41.54 29.23 70.77 29.23 29.23 70.77 29.23Z"}]])
+
 (defn edit-icon []
   [:svg {:class "w-5 h-5" :fill "currentColor" :stroke "currentColor"  :viewBox "0 -960 960 960"}
    [:path {:d "M553.08-100v-105.69l217.15-216.16q7.46-7.07 16.11-10.3 8.65-3.23 17.3-3.23 9.44 0 18.25 3.53 8.82 3.54 16.03 10.62l37 37.38q6.46 7.47 10 16.16 3.54 8.69 3.54 17.38t-3.23 17.69q-3.23 9-10.31 16.46L658.77-100H553.08Zm287.69-250.31-37-37.38 37 37.38Zm-240 202.62h38l129.84-130.47-18-19.39-19-18.37-130.84 130.23v38ZM252.31-100Q222-100 201-121q-21-21-21-51.31v-615.38Q180-818 201-839q21-21 51.31-21H570l210 210v111.92h-60V-620H540v-180H252.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46v615.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85h213.07v60H252.31ZM510-480Zm240.61 182.45-19-18.37 37 37.76-18-19.39Z"}]])
@@ -75,3 +98,42 @@
 (defn compact-view-icon []
   [:svg {:class "w-5 h-5" :fill "currentColor" :viewBox "0 0 24 24"}
    [:path {:d "M3 4h18v2H3V4zm0 4h18v2H3V8zm0 4h18v2H3v-2zm0 4h18v2H3v-2z"}]])
+
+(defn light-mode-icon []
+  [:svg {:class "w-5 h-5" :fill "currentColor" :viewBox "0 -960 960 960"}
+   [:path {:d "M480-360q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm0 60q-74.92 0-127.46-52.54Q300-405.08 300-480q0-74.92 52.54-127.46Q405.08-660 480-660q74.92 0 127.46 52.54Q660-554.92 660-480q0 74.92-52.54 127.46Q554.92-300 480-300ZM200-450H50v-60h150v60Zm710 0H760v-60h150v60ZM450-760v-150h60v150h-60Zm0 710v-150h60v150h-60ZM262.92-656.92l-93.69-90.46 42.39-44.39 90.23 92.69-38.93 42.16Zm485.46 488.69-90.84-93.31 39.54-41.54 93.69 90.46-42.39 44.39Zm-91.46-528.85 90.46-93.69 44.39 42.39-92.69 90.23-42.16-38.93ZM168.23-211.62l93.31-90.84 40.77 39.54-90.08 94.07-44-42.77ZM480-480Z"}]])
+
+(defn dark-mode-icon []
+  [:svg {:class "w-5 h-5" :fill "currentColor" :viewBox "0 -960 960 960"}
+   [:path {:d "M481.15-140q-141.66 0-240.83-99.17-99.16-99.16-99.16-240.83 0-135.77 92.11-232.88 92.11-97.12 225.57-105.2 8.62 0 16.93.62 8.3.62 16.3 1.85-30.61 28.61-48.76 69.15-18.16 40.54-18.16 86.46 0 98.33 68.84 167.17Q562.82-424 661.15-424q46.54 0 86.77-18.15 40.23-18.16 68.46-48.77 1.23 8 1.85 16.31.61 8.3.61 16.92-7.69 133.46-104.8 225.57Q616.92-140 481.15-140Zm0-60q88 0 158-48.5t102-126.5q-20 5-40 8t-40 3q-123 0-209.5-86.5T365.15-660q0-20 3-40t8-40q-78 32-126.5 102t-48.5 158q0 116 82 198t198 82Zm-10-270Z"}]])
+
+(defn alert [flash]
+  (when flash
+    (let [type (first (keys flash))
+          message (first (vals flash))
+          style (case type
+                  :success "bg-green-50 border-green-400 text-green-700"
+                  :error "bg-red-50 border-red-400 text-red-700"
+                  "bg-blue-50 border-blue-400 text-blue-700")]
+
+      [:div {:role "alert" :id "alert-box"
+             :class (str style " fixed top-22 left-1/2 transform -translate-x-1/2 z-50
+                                 rounded-md border min-w-60 p-2 shadow-sm")}
+       [:script "setTimeout(() => { document.getElementById('alert-box').classList.add('hidden') }, 2000);"]
+
+       [:div {:class "flex items-start gap-4"}
+        [:svg {:fill "none" :viewBox "0 0 24 24" :stroke-width "1.5" :stroke "currentColor"
+               :class "size-6"}
+         [:path {:stroke-linecap "round" :stroke-linejoin "round"
+                 :d "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"}]]
+        [:div {:class "flex-1"}
+         [:strong {:class "font-medium"} (:title message)]
+         [:p {:class "mt-0.5 text-sm"} (:message message)]]
+        [:button {:class "rounded-full transition-colors hover:bg-gray-50"
+                  :type "button" :aria-label "Dismiss alert"
+                  :onClick "document.getElementById('alert-box').classList.add('hidden');"}
+         [:span {:class "sr-only"} "Dismiss popup"]
+         [:svg {:fill "none" :viewBox "0 0 24 24" :stroke-width "1.5" :stroke "currentColor"
+                :class "size-5"}
+          [:path {:stroke-linecap "round" :stroke-linejoin "round"
+                  :d "M6 18L18 6M6 6l12 12"}]]]]])))

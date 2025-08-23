@@ -2,5 +2,6 @@
 
 (defonce app-system-atom (atom nil))
 
-(comment
-  (:server app-system-atom))
+(defonce app-config {})
+
+(defonce dev? false)

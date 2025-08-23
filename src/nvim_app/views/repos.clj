@@ -2,7 +2,8 @@
   (:require
    [nvim-app.views.assets :refer :all]
    [nvim-app.views.layout :refer [base-layout]]
-   [nvim-app.components.app :refer [dev?]]
+   [nvim-app.views.repos-compact :as compact]
+   [nvim-app.state :refer [dev?]]
    [hiccup2.core :refer [html]]
    [hiccup.page :refer [include-js]]
    [hiccup.util :as u]
@@ -36,24 +37,7 @@
   (vec (concat (update el 1 #(merge-with (fn [a b] (str/join " " [a b])) % opts))
                (when body body))))
 
-(def bg-color " background-color:#d3e4db; ")
 (def hx-include "#search-input, #limit-input, #category, #sort, #group")
-
-(defn topic-color [topic]
-  (let [colors [["bg-yellow-100" "lsp" "telescope"]
-                ["bg-orange-100" "ai" "llm" "lua"]
-                ["bg-red-100" "colorscheme" "theme"]
-                ["bg-cyan-100" "markdown" "treesitter"]
-                ["bg-indigo-100" "config" "dotfiles"]
-                ["bg-lime-100" "python" "rust"]
-                ["bg-blue-100" "neovim" "nvim"]
-                ["bg-purple-100" "vim" "plugin" "terminal"]]]
-
-    (or (some (fn [[color & topics]]
-                (when (some #(str/includes? topic %) topics)
-                  (format " %s " color)))
-              colors)
-        " bg-green-100 ")))
 
 (defn search-input [url query]
   [:div {:class "relative"}
@@ -185,15 +169,60 @@
      (icon)
      [:span {:class "text-sm text-green-900"} (number->str number)]]))
 
-(defn plugin-card [user {:keys [repo url owner name
-                                description topics created updated
-                                stars stars_week stars_month
-                                watched]}]
-  [:div {:class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+(defn user-section [{:keys [user query-params]}
+                    {:keys [id repo owner watched]}]
+  (let [repo-id (str "#repo-" id)]
+    [:div {:class "flex"}
+     [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
+               :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
+                           (if watched "text-blue-700" "text-green-700"))
+               :hx-get (u/url "/user/watch" {:repo repo}) :hx-target repo-id
+               :hx-select repo-id :hx-swap "outerHTML" :hx-include hx-include}
+      (watch-icon)]
+
+     (when (or (= (:username user) owner)
+               (= (:role user) "admin"))
+       (if (= (str repo) (:edit query-params))
+         [:button {:title "Save"
+                   :class "flex items-center pl-2 space-x-1 cursor-pointer text-blue-700"
+                   :hx-get (u/url "/repo" {:repo repo})
+                   :hx-include (str "#category-edit, " hx-include)
+                   :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
+          (save-icon)]
+         [:button {:title "Edit"
+                   :class "flex items-center pl-2 space-x-1 cursor-pointer text-green-700"
+                   :hx-get (u/url "/repos-page" {:edit repo}) :hx-include  hx-include
+                   :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
+          (edit-icon)]))]))
+
+(defn edit-category-dropdown [{:keys [edit]} {:keys [repo category]} categories]
+  (when (= (str repo) edit)
+    [:div {:class "flex items-center space-x-1 mb-2"}
+     [:div {:class "relative"}
+      [:select {:id "category-edit" :name "category-edit" :title "Edit category"
+                :class "appearance-none bg-transparent border border-green-500 rounded-lg
+                      px-3 py-2 pr-8 text-sm text-gray-700 
+                      focus:outline-none focus:ring-2 focus:ring-green-600
+                      focus:border-transparent w-auto sm:w-34"}
+
+       [:option {:value "" :selected (nil? category)} "-"]
+       (for [name categories]
+         [:option {:value name :selected (= name category)} name])]
+
+      [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
+       (chevron-down-icon)]]]))
+
+(defn plugin-card [{:keys [user query-params] :as request}
+                   {:keys [categories]}
+                   {:keys [id url name  description topics created updated
+                           stars stars_week stars_month] :as plugin}]
+  [:div {:id (str "repo-" (:id plugin))
+         :class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
          :style bg-color}
 
    [:div {:class "flex items-start justify-between"}
     [:div {:class "flex-1"}
+     (edit-category-dropdown query-params plugin categories)
 
      [:a {:href url
           :class "text-xl font-semibold text-green-900 mb-2 break-word overflow-hidden"
@@ -213,22 +242,10 @@
 
       (let [updated (date->str updated)]
         (when (not= "1970-01-01" updated)
-          [:span "Last updated: " updated])
+          [:span "Last updated: " updated]))
 
-        (when user
-          [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
-                    :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
-                                (if watched "text-blue-700" "text-green-700"))
-                    :hx-get (u/url "/user/watch" {:repo repo}) :hx-target "#plugins-list" :hx-include hx-include}
-           (watch-icon)])
-
-        (when (or (= (:username user) owner)
-                  (= (:role user) "admin"))
-          [:button {:title "Edit"
-                    :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
-                                (if watched "text-blue-700" "text-green-700"))
-                    :hx-get (u/url "/user/watch" {:repo repo}) :hx-target "#plugins-list" :hx-include hx-include}
-           (edit-icon)]))]]
+      (when user
+        (user-section request plugin))]]
 
     (when (pos? stars)
       [:div {:class "flex flex-col items-end pt-2 pl-2"}
@@ -236,53 +253,55 @@
        (star (- stars stars_week) growth-icon-w "text-orange-500" "Stars since beginning of the week")
        (star (- stars stars_month) growth-icon-m "text-red-500" "Stars since beginning of the month")])]])
 
-(defn category-section [user n show-group? group-name plugins]
-  [:div {:class "mb-8"}
-   [:div {:class "flex items-center justify-between mb-4"}
-    [:h2 {:class (when-not show-group? "invisible")}
-     [:span {:class "text-xl font-semibold text-green-600"} "Category: "]
-     [:span {:class "text-xl font-semibold text-blue-600"} group-name]]
+(defn view-toggle [title icon]
+  [:button {:class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
+                        focus:outline-none focus:ring-2 focus:ring-green-500
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+            :title title
+            :disabled true}
+   (icon)])
 
-    (when (= 0 n)
-      [:div {:class "flex items-center space-x-2"}
-       [:button {:class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
-                       focus:outline-none focus:ring-2 focus:ring-green-500
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-                 :title "Compact view"
-                 :disabled true}
-        (compact-view-icon)]
-       [:button {:class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
-                       focus:outline-none focus:ring-2 focus:ring-green-500
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-                 :title "Full view"
-                 :disabled true}
-        (full-view-icon)]])]
+(defn category-section [request params n show-group? group-name plugins & {:keys [compact-view?]}]
+  (if compact-view?
+    (compact/compact-category-section request group-name plugins)
+    [:div {:class "mb-8"}
+     [:div {:class "flex items-center justify-between mb-4"}
+      [:h2 {:class (when-not show-group? "invisible")}
+       [:span {:class "text-xl font-semibold text-green-600"} "Category: "]
+       [:span {:class "text-xl font-semibold text-blue-600"} group-name]]
 
-   [:div {:class "space-y-6"}
-    (map (fn [plugin] (plugin-card user plugin)) plugins)]])
+      (when (= 0 n)
+        [:div {:class "flex items-center space-x-2"}
+         (view-toggle "Dark mode" dark-mode-icon)
+         (view-toggle "Compact view" compact-view-icon)
+         (view-toggle "Full view" full-view-icon)])]
+
+     [:div {:class "space-y-6"}
+      (map (fn [plugin] (plugin-card request params plugin)) plugins)]]))
 
 (defn plugins-list [request plugins {:keys [group category page total] :as params}]
   (str
    (html
     (let [url "/repos-page" user (:user request)]
       [:div {:class "space-y-6"}
+       (alert (:flash request))
        (controls-and-pagination user url params)
 
-       (let [show-group? (or (= "category" group) (seq category))
+       (let [show-group? (some seq [group category])
              grouped (cond
                        (= "updated" group) (group-by-date plugins)
                        show-group? (into (sorted-map) (group-by :category plugins))
                        :else {"-" plugins})]
 
          (for [[n [group-name plugins]] (map-indexed vector grouped)]
-           (category-section user n show-group? (or group-name "-") plugins)))
+           (category-section request params n show-group? (or group-name "-") plugins)))
 
        (pagination-btm url page total)]))))
 
 (defn main [request params]
   (let [{:keys [q]} params url "/repos-page"]
     (base-layout
-     {:head_include (when-not (dev?) (include-js "/js/repos.js"))}
+     {:head_include (when-not dev? (include-js "/js/repos.js"))}
      request
      [:div {:class "max-w-4xl mx-auto px-4 py-6"}
       (search-input url q)
