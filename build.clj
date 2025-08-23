@@ -15,31 +15,35 @@
 (defn clean [_]
   (b/delete {:path "target"}))
 
-(defn log-user-imports [user-imports]
-  (println "\nERROR: Found 'user' namespace references in:")
+(defn log-artifacts [user-imports]
+  (println "\nERROR: Found artifacts in:")
   (doseq [{:keys [file matches]} user-imports]
     (println " -" file)
     (doseq [match matches]
       (println "   " (str/trim match)))))
 
-(defn check-for-user-ns []
+(defn check-for-artifacts []
   (println "Checking for 'user' namespace references...")
-  (let [src-dir "src"
-        user-imports (for [file (file-seq (io/file src-dir))
-                           :when (.isFile file)
-                           :let [content (slurp file)
-                                 ns-matches (re-seq #".*\[user :as.*" content)]
-                           :when (seq ns-matches)]
-                       {:file (.getPath file)
-                        :matches ns-matches})]
+  (println "Checking for #p")
 
-    (if (seq user-imports)
-      (log-user-imports user-imports)
+  (let [src-dir "src"
+        found (for [file (file-seq (io/file src-dir))
+                    :when (.isFile file)
+                    :let [content (slurp file)
+                          matches (concat
+                                   (re-seq #".*\[user :as.*" content)
+                                   (re-seq #".*#p .*" content))]
+                    :when (seq matches)]
+                {:file (.getPath file)
+                 :matches matches})]
+
+    (if (seq found)
+      (log-artifacts found)
       true)))
 
 (defn uber [_]
   (clean nil)
-  (if-not (check-for-user-ns)
+  (if-not (check-for-artifacts)
     (System/exit 1)
     (do
       (b/copy-dir {:src-dirs ["src" "resources"]

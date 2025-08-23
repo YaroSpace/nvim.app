@@ -51,8 +51,7 @@
   (component/stop-system @nvim-app.state/app-system-atom)
   "
 ```http
-http://localhost:6080/plugins-page?page=1&limit=2
-Accept: text/html
+https://nvim.app/repos-page?q=yarospace
 Accept: application/json
 
 ```

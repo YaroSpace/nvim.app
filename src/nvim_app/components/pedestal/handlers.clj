@@ -1,6 +1,6 @@
 (ns nvim-app.components.pedestal.handlers
   (:require
-   [nvim-app.components.app :as app]
+   [nvim-app.state :refer [app-config]]
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
    [nvim-app.db.user :as users]
@@ -9,7 +9,8 @@
    [nvim-app.views.about :as about]
    [nvim-app.views.not-found :as not-found]
    [nvim-app.utils :as u]
-   [io.pedestal.http.route :as route]))
+   [io.pedestal.http.route :as route]
+   [clojure.string :as str]))
    ; [schema.core :as s]
 
 (defn response
@@ -48,6 +49,28 @@
      (assoc context :response
             (ok (about/index request))))})
 
+(def repos-index
+  {:name :repos-index
+   :enter (fn [{:keys [request] :as context}]
+            (assoc context :response
+                   {:status 200
+                    :body (repos/main request (-> request :session :params))}))})
+(def repo-update
+  {:name :repo-update
+   :enter (fn [{:keys [request] :as context}]
+            (let [{:keys [query-params]} request
+                  repo {:category_id (:id (db/select-one :categories
+                                                         :name (:category-edit query-params)))}]
+              (when (every? some? (vals repo))
+                (db/update! :repos
+                            :values repo
+                            :where [:repo (:repo query-params)]))
+
+              (assoc context :response
+                     (redirect (route/url-for :repos-page
+                                              :params query-params
+                                              {:status 303})))))})
+
 (def repos-page
   {:name :repos-page
    :enter
@@ -60,7 +83,7 @@
            offset (* (dec page) limit)
 
            matched (repo/search-repos q category sort offset limit user)
-           categories (map :name (db/select :categories))
+           categories (into (sorted-set) (map :name (db/select :categories)))
 
            total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
 
@@ -77,13 +100,6 @@
                                                         :total total)))
                :session (assoc session :params query-params)})))})
 
-(def repos-index
-  {:name :repos-index
-   :enter (fn [{:keys [request] :as context}]
-            (assoc context :response
-                   {:status 200
-                    :body (repos/main request (-> request :session :params))}))})
-
 (def github-login
   {:name :github-login
    :enter
@@ -92,12 +108,27 @@
        (assoc context :response
               {:status 204})
 
-       (let [{:keys [auth-url client-id redirect-uri scope]} (:github app/app-config)]
+       (let [{:keys [auth-url client-id redirect-uri scope]} (:github app-config)]
          (assoc context :response
                 (redirect (str auth-url
                                "?client_id=" client-id
                                "&redirect_uri=" redirect-uri
                                "&scope=" scope))))))})
+(defn get-access-token [code]
+  (let [{:keys [client-id client-secret token-url]} (:github app-config)]
+    (u/fetch-request
+     {:method :post :url token-url
+      :accept :json :content-type :json
+      :form-params {:client_id client-id
+                    :client_secret client-secret
+                    :code code}}
+     :verbose true)))
+
+(defn get-user-info [access-token]
+  (u/fetch-request
+   {:method :get :url (-> (:github app-config) :user-url)
+    :headers {"Authorization" (str "token " access-token)}}
+   :verbose true))
 
 (def github-callback
   {:name :github-login
@@ -105,37 +136,35 @@
    (fn [{:keys [request] :as context}]
      (let [session (:session request)
            code (get-in request [:params :code])
-           {:keys [client-id client-secret token-url user-url]} (:github app/app-config)
 
-           token-response (u/fetch-request
-                           {:method :post :url token-url
-                            :accept :json :content-type :json
-                            :form-params {:client_id client-id
-                                          :client_secret client-secret
-                                          :code code}}
-                           :verbose true)
+           token-response (get-access-token code)
            access-token (-> token-response :body :access_token)
 
-           user-response (u/fetch-request
-                          {:method :get :url user-url
-                           :headers {"Authorization" (str "token " access-token)}}
-                          :verbose true)
+           user-response (when access-token
+                           (get-user-info access-token))
+
+           errors (:errors (or user-response token-response))
 
            {:keys [id login email name html_url avatar_url]} (:body user-response)
 
-           user (or (db/select-one :users
-                                   :where [:= :github_id id])
-                    (db/insert! :users
-                                :values [{:github_id id
-                                          :username login
-                                          :email email
-                                          :name name
-                                          :url html_url
-                                          :avatar_url avatar_url}]))]
+           user (when id
+                  (or (db/select-one :users
+                                     :where [:= :github_id id])
+                      (db/insert! :users
+                                  :values [{:github_id id
+                                            :username login
+                                            :email email
+                                            :name name
+                                            :url html_url
+                                            :avatar_url avatar_url}])))]
 
        (assoc context :response
-              (redirect "/" {:session (assoc session :user
-                                             (:id user))}))))})
+              (redirect "/" {:session (assoc session :user (:id user))
+                             :flash (if user
+                                      {:success {:title "Login Successful"
+                                                 :message (str "Welcome, " (:name user) "!")}}
+                                      {:error {:title "Errors logging in"
+                                               :message (str/join ":" (remove nil? (vals errors)))}})}))))})
 
 ; TODO: add error handling for auth calls
 

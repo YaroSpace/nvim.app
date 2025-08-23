@@ -1,6 +1,6 @@
 (ns nvim-app.db.core
   (:require
-   [nvim-app.state :refer [app-system-atom]]
+   [nvim-app.state :refer [app-system-atom app-config]]
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
    [migratus.core :as migratus]
@@ -14,7 +14,11 @@
   ([ds sql cmd]
    (let [raw (sql/format sql)]
      (try
-       (cmd ds raw)
+       (let [result (cmd ds raw)]
+         (when (-> app-config :db-spec :logging?)
+           (log/warn "Executed query: " raw)
+           (log/warn "Result: " result))
+         result)
        (catch Exception e
          (let [error (ex-message e)]
            (log/error "Failed to execute query: " raw error)

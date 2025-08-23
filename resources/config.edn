@@ -7,7 +7,7 @@
  :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
            :username #or [#env DATABASE_USER "nvim"]
            :password #or [#env DATABASE_PASSWORD "nvim"]
-           :logging? #profile {:default false :dev true}}
+           :logging? #profile {:default false :dev false}}
 
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
            :enable #or [#env NVIM_APP_REPL_ENABLE false]}
@@ -18,7 +18,7 @@
  :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]
            :client-id #or [#env GITHUB_CLIENT_ID #ref [:secrets :github :client-id]]
            :client-secret #or [#env GITHUB_CLIENT_SECRET #ref [:secrets :github :client-secret]]
-           :redirect-uri #profile {:default "" :dev "http://localhost:3000/auth/github/callback"}
+           :redirect-uri #profile {:default "https://nvim.app/auth/github/callback" :dev "http://127.0.0.1:3000/auth/github/callback"}
            :auth-url "https://github.com/login/oauth/authorize"
            :token-url "https://github.com/login/oauth/access_token"
            :user-url "https://api.github.com/user"
@@ -26,6 +26,6 @@
 
  :app     {:env #profile {:default :prod :dev :dev}
            :update-on-start? #profile {:default false :dev false}
-           :features {:auth #profile {:default false :dev true}}}}
+           :features {:auth #profile {:default true :dev true}}}}
 
 
