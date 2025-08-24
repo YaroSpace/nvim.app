@@ -10,6 +10,7 @@
    [io.pedestal.http.content-negotiation :as content-negotiation]
    [ring.middleware.session.cookie :refer [cookie-store]]
    [io.pedestal.http.ring-middlewares :as ring-middlewares]
+   [io.pedestal.http.body-params :as body-params]
    [cheshire.core :as json]
    [cheshire.generate :refer [add-encoder encode-str]]
    [clojure.tools.logging :as log]
@@ -137,6 +138,7 @@
                                      (inject-dependencies-interceptor this)
                                      auth-interceptor
                                      (ring-middlewares/flash)
+                                     (body-params/body-params)
                                      coerce-body-interceptor
                                      content-negotiation-interceptor
                                      csp-interceptor])
