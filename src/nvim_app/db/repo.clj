@@ -21,6 +21,12 @@
   (let [watched (:watched (db/select-one :users :id (:id user)))]
     [:= :repo [:any (into-array String watched)]]))
 
+(defn filter-by-category [user category]
+  (cond
+    (= "archived" category) [:= :archived true]
+    (and (= "watched" category) user) (user-watched user)
+    :else [:= :categories.name category]))
+
 (defn get-repos
   ([]
    (get-repos nil nil nil nil))
@@ -33,38 +39,45 @@
              :left-join   [:categories [:= :repos.category_id :categories.id]]
              :order-by (concat (order-by sort)
                                [[:repos.name :asc]])}
-      (and (seq category)
-           (not= "watched" category)) (assoc :where [:= :categories.name category])
-      (and user
-           (= "watched" category)) (assoc :where (user-watched user))
+
+      (seq category) (assoc :where (filter-by-category user category))
       offset (assoc :offset offset)
       limit (assoc :limit limit)))))
 
 (defn upsert-repo! [repo]
-  (let [{:keys [name owner description
+  (let [{:keys [name owner description archived
                 stars stars_week stars_month
                 topics created updated]} repo
         default-date (Timestamp/from (Instant/parse "1970-01-01T00:00:00Z"))]
 
     (db/query-one!
-     {:insert-into :repos
-      :values [(assoc repo  :repo (str owner "/" name)
-                      :description (or description "")
-                      :stars (or stars 0)
-                      :stars_week 10000
-                      :stars_month 10000
-                      :topics (str/join " " (or topics ""))
-                      :created (or created default-date)
-                      :updated (or updated default-date))]
+     (let [-description (or description "")
+           -stars (or stars 0)
+           -topics (str/join " " (or topics ""))
+           -archived (or archived false)
+           -created (or created default-date)
+           -updated (or updated default-date)]
 
-      :on-conflict [:repo]
-      :do-update-set (cond-> {:topics (str/join " " (or topics ""))
-                              :updated (or updated default-date)
-                              :created (or created default-date)
-                              :description (or description "")
-                              :stars (or stars 0)}
-                       stars_week (assoc :stars_week stars_week)
-                       stars_month (assoc :stars_week stars_month))})))
+       {:insert-into :repos
+        :values [(assoc repo  :repo (str owner "/" name)
+                        :description -description
+                        :stars -stars
+                        :stars_week 10000
+                        :stars_month 10000
+                        :topics -topics
+                        :archived -archived
+                        :created -created
+                        :updated -updated)]
+
+        :on-conflict [:repo]
+        :do-update-set (cond-> {:topics -topics
+                                :updated -updated
+                                :created -created
+                                :archived -archived
+                                :description -description
+                                :stars -stars}
+                         stars_week (assoc :stars_week stars_week)
+                         stars_month (assoc :stars_week stars_month))}))))
 
 (defn upsert-repos! [repos]
   (let [result (for [repo repos]
@@ -85,7 +98,7 @@
        :left-join   [:categories [:= :repos.category_id :categories.id]]
 
        :where
-       [:and (if (seq category) [:= :categories.name category] true)
+       [:and (if (seq category) (filter-by-category user category) true)
         [:or
          [:% :repo q] [:% :description q] [:% :categories.name q]
          [atat :tsv [:plainto_tsquery [:inline "english"] q]]

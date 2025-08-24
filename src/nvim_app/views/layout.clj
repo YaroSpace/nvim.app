@@ -4,10 +4,6 @@
    [nvim-app.views.assets :refer :all]
    [hiccup.page :refer [html5 include-js include-css]]))
 
-(def header-color " background-color:#d3e4db; ")
-(def border-color "#c1d5c9")
-(def body-color " background-color: #e7eee8; ")
-
 (defn google-analytics []
   [:div
    [:script {:async "async" :src "https://www.googletagmanager.com/gtag/js?id=G-ZL4M33MPVW"}]
@@ -61,7 +57,7 @@
       [:img {:src (:avatar_url user)}]]]))
 
 (defn header [{:keys [user]}]
-  [:header {:style (str header-color "border-bottom: 1px solid " border-color)}
+  [:header {:style (str bg-color "border-bottom: 1px solid " border-color)}
    [:div {:class "max-w-4xl mx-auto px-4 py-6"}
     [:div {:class "flex items-center justify-between relative"}
      (menu)
@@ -87,7 +83,7 @@
          (github-icon)])]]]])
 
 (def footer
-  [:footer {:style (str header-color "margin-top: 0rem; border-top: 1px solid " border-color)}
+  [:footer {:style (str bg-color "margin-top: 0rem; border-top: 1px solid " border-color)}
    [:div {:class "max-w-4xl mx-auto px-4 py-8"}
     [:div {:class "text-center"}
      [:h2 {:class "text-2xl font-bold text-gray-900 tracking-wider"}]]]])

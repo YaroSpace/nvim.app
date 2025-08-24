@@ -35,12 +35,13 @@
                    :body body}))
 
 (defn normalize-github-data
-  [{{:keys [owner createdAt stargazerCount
+  [{{:keys [owner createdAt stargazerCount isArchived
             repositoryTopics defaultBranchRef] :as node} :node}]
 
   (assoc (select-keys node [:name :url :description])
          :stars stargazerCount
          :owner (:login owner)
+         :archived isArchived
          :topics (map #(get-in % [:topic :name]) (:nodes repositoryTopics))
          :created (some-> createdAt (Instant/parse) (Timestamp/from))
          :updated (some-> (get-in defaultBranchRef [:target :committedDate])
