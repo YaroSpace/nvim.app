@@ -3,6 +3,7 @@
    [nvim-app.views.assets :refer :all]
    [nvim-app.views.layout :refer [base-layout]]
    [nvim-app.views.repos-compact :as compact]
+   [nvim-app.views.repos-shared :refer :all]
    [nvim-app.state :refer [dev?]]
    [hiccup2.core :refer [html]]
    [hiccup.page :refer [include-js]]
@@ -21,23 +22,11 @@
         target-date (.toLocalDate (.toLocalDateTime date))]
     (.between ChronoUnit/WEEKS epoch target-date)))
 
-(defn date->str [date]
-  (first (str/split (str date) #" ")))
-
-(defn number->str [n]
-  (str/replace (format "%,d" n) "," " "))
-
 (defn group-by-date [repos]
   (->> repos
        (group-by #(date->week (:updated %)))
        (into (sorted-map-by >))
        (reduce-kv (fn [acc week repos] (assoc acc (week->date week) repos)) {})))
-
-(defn el-with [el opts & body]
-  (vec (concat (update el 1 #(merge-with (fn [a b] (str/join " " [a b])) % opts))
-               (when body body))))
-
-(def hx-include "#search-input, #limit-input, #category, #sort, #group")
 
 (defn search-input [url query]
   [:div {:class "relative"}
@@ -144,7 +133,8 @@
              :class "w-16 px-2 py-1.5 bg-transparent border border-green-500 rounded-lg text-sm text-center
                      focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
              :type "number" :min "1" :max "100" :value (or limit "10")
-             :hx-get url :hx-include hx-include :hx-target "#plugins-list"}]
+             :hx-get url :hx-include hx-include :hx-target "#plugins-list"
+             :hx-trigger "submit, input, keyup changed delay:500ms"}]
 
     [:input {:id "current-page" :href "#" :class "hidden"
              :hx-get (u/url url {:page page}) :hx-include hx-include :hx-target "#plugins-list"}]
@@ -164,37 +154,17 @@
   [:span {:class (str "inline-flex items-center px-2 py-1 rounded-full text-xs
                   font-medium" (topic-color topic) "green-100 text-gray-700")} topic])
 
-(defn star [number icon color title]
-  (when (pos? number)
-    [:div {:title title :class (str "flex items-center space-x-1 py-2 " color)}
-     (icon)
-     [:span {:class "text-sm text-green-900"} (number->str number)]]))
-
 (defn user-section [{:keys [user query-params]}
                     {:keys [id repo owner watched]}]
   (let [repo-id (str "#repo-" id)]
     [:div {:class "flex"}
-     [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
-               :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
-                           (if watched "text-blue-700" "text-green-700"))
-               :hx-get (u/url "/user/watch" {:repo repo}) :hx-target repo-id
-               :hx-select repo-id :hx-swap "outerHTML" :hx-include hx-include}
-      (watch-icon)]
+     (watch-button repo-id repo watched)
 
      (when (or (= (:username user) owner)
                (= (:role user) "admin"))
        (if (= (str repo) (:edit query-params))
-         [:button {:title "Save"
-                   :class "flex items-center pl-2 space-x-1 cursor-pointer text-blue-700"
-                   :hx-get (u/url "/repo" {:repo repo})
-                   :hx-include (str "#category-edit, " hx-include)
-                   :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
-          (save-icon)]
-         [:button {:title "Edit"
-                   :class "flex items-center pl-2 space-x-1 cursor-pointer text-green-700"
-                   :hx-get (u/url "/repos-page" {:edit repo}) :hx-include  hx-include
-                   :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
-          (edit-icon)]))]))
+         (save-button repo-id repo)
+         (edit-button repo-id repo)))]))
 
 (defn edit-category-dropdown [{:keys [edit]} {:keys [repo category]} categories]
   (when (= (str repo) edit)
@@ -253,32 +223,24 @@
 
     (when (pos? stars)
       [:div {:class "flex flex-col items-end pt-2 pl-2"}
-       (star stars star-icon "text-yellow-500" "Total")
-       (star (- stars stars_week) growth-icon-w "text-orange-500" "Stars since beginning of the week")
-       (star (- stars stars_month) growth-icon-m "text-red-500" "Stars since beginning of the month")])]])
+       (star stars star-icon "space-x-1 py-2 text-sm text-yellow-500" "Total")
+       (star (- stars stars_week) growth-icon-w "space-x-1 py-2 text-sm text-orange-500" "Stars since beginning of the week")
+       (star (- stars stars_month) growth-icon-m "space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])]])
 
-(defn view-toggle [title icon]
-  [:button {:class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
-                        focus:outline-none focus:ring-2 focus:ring-green-500
-                        disabled:opacity-50 disabled:cursor-not-allowed"
-            :title title
-            :disabled true}
-   (icon)])
+(defn category-section [request params n show-group? group-name plugins]
+  (if (= "compact" (:view params))
+    (compact/category-section request params n show-group? group-name plugins)
 
-(defn category-section [request params n show-group? group-name plugins & {:keys [compact-view?]}]
-  (if compact-view?
-    (compact/compact-category-section request group-name plugins)
     [:div {:class "mb-8"}
      [:div {:class "flex items-center justify-between mb-4"}
       [:h2 {:class (when-not show-group? "invisible")}
-       [:span {:class "text-xl font-semibold text-green-600"} "Category: "]
-       [:span {:class "text-xl font-semibold text-blue-600"} group-name]]
+       [:span {:class "text-xl font-semibold text-green-800"} "Category: "]
+       [:span {:class "text-xl font-semibold text-blue-700"} group-name]]
 
       (when (= 0 n)
         [:div {:class "flex items-center space-x-2"}
-         (view-toggle "Dark mode" dark-mode-icon)
-         (view-toggle "Compact view" compact-view-icon)
-         (view-toggle "Full view" full-view-icon)])]
+         (mode-toggle (:mode params "light"))
+         (view-toggle (:view params "compact"))])]
 
      [:div {:class "space-y-6"}
       (map (fn [plugin] (plugin-card request params plugin)) plugins)]]))

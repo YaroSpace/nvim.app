@@ -9,7 +9,8 @@
 
 (defn app-stats []
   {:records (count (db/select :repos))
-   :updates (sched/completed-tasks)})
+   :updates (sched/completed-tasks)
+   :users (count (db/select :users))})
 
 (defrecord App [config app]
   component/Lifecycle

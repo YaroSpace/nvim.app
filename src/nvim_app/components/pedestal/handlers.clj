@@ -58,28 +58,28 @@
 (def repo-update
   {:name :repo-update
    :enter (fn [{:keys [request] :as context}]
-            (let [{:keys [query-params]} request
+            (let [{:keys [form-params]} request
                   repo {:category_id (:id (db/select-one :categories
-                                                         :name (:category-edit query-params)))}]
+                                                         :name (:category-edit form-params)))}]
               (when (every? some? (vals repo))
                 (db/update! :repos
                             :values repo
-                            :where [:repo (:repo query-params)]))
+                            :where [:repo (:repo form-params)]))
 
               (assoc context :response
                      (redirect (route/url-for :repos-page
-                                              :params query-params
-                                              {:status 303})))))})
+                                              :params form-params)
+                               {:status 303}))))})
 
 (def repos-page
   {:name :repos-page
    :enter
    (fn [{:keys [request] :as context}]
      (let [{:keys [query-params session accept user]} request
-           {:keys [q category sort page limit] :or {page "1" limit "10"}} query-params
+           {:keys [q category sort page limit]} query-params
 
-           page   (parse-long page)
-           limit  (parse-long limit)
+           page   (parse-long (or (not-empty page) "1"))
+           limit  (parse-long (or (not-empty limit) "10"))
            offset (* (dec page) limit)
 
            matched (repo/search-repos q category sort offset limit user)
@@ -172,13 +172,13 @@
   {:name :watch-toggle
    :enter
    (fn [{:keys [request] :as context}]
-     (let [{:keys [user query-params]} request]
-       (when-let [repo  (and user (:repo query-params))]
+     (let [{:keys [user form-params]} request]
+       (when-let [repo  (and user (:repo form-params))]
          (users/toggle-watched! (:id user) repo))
 
        (assoc context :response
               (redirect (route/url-for :repos-page
-                                       :params query-params)
+                                       :params form-params)
                         {:status 303}))))})
 
 (comment

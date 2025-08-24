@@ -1,26 +1,9 @@
-(ns nvim-app.views.assets
-  (:require [clojure.string :as str]))
+(ns nvim-app.views.assets)
 
-(def body-color " background-color: #e7eee8; ")
+(def body-color " background-color: #e7eee8; dark:bg-gray-900 ")
 (def border-color "#c1d5c9")
 (def bg-color " background-color:#d3e4db; ")
 (def bg-color-compact " background-color:#f0f6f1; ")
-
-(defn topic-color [topic]
-  (let [colors [["bg-yellow-100" "lsp" "telescope"]
-                ["bg-orange-100" "ai" "llm" "lua"]
-                ["bg-red-100" "colorscheme" "theme"]
-                ["bg-cyan-100" "markdown" "treesitter"]
-                ["bg-indigo-100" "config" "dotfiles"]
-                ["bg-lime-100" "python" "rust"]
-                ["bg-blue-100" "neovim" "nvim"]
-                ["bg-purple-100" "vim" "plugin" "terminal"]]]
-
-    (or (some (fn [[color & topics]]
-                (when (some #(str/includes? topic %) topics)
-                  (format " %s " color)))
-              colors)
-        " bg-green-100 ")))
 
 (defn star-icon []
   [:svg {:class "w-4 h-4" :fill "currentColor" :viewBox "0 0 20 20"}
@@ -29,11 +12,11 @@
            1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"}]])
 
 (defn growth-icon-w []
-  [:svg {:class "w-5 h-5" :viewBox "0 -960 960 960" :fill "currentColor"}
+  [:svg {:class "w-4 h-4" :viewBox "0 -960 960 960" :fill "currentColor"}
    [:path {:d "m296-345-56-56 240-240 240 240-56 56-184-183-184 183Z"}]])
 
 (defn growth-icon-m []
-  [:svg {:class "w-5 h-5" :viewBox "0 -960 960 960" :fill "currentColor"}
+  [:svg {:class "w-4 h-4" :viewBox "0 -960 960 960" :fill "currentColor"}
    [:path {:d "m296-224-56-56 240-240 240 240-56 56-184-183-184 183Zm0-240-56-56 240-240 240 240-56 56-184-183-184 183Z"}]])
 
 (defn search-icon []
