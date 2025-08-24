@@ -1,26 +1,9 @@
-(ns nvim-app.views.assets
-  (:require [clojure.string :as str]))
+(ns nvim-app.views.assets)
 
-(def body-color " background-color: #e7eee8; ")
+(def body-color " background-color: #e7eee8; dark:bg-gray-900 ")
 (def border-color "#c1d5c9")
 (def bg-color " background-color:#d3e4db; ")
 (def bg-color-compact " background-color:#f0f6f1; ")
-
-(defn topic-color [topic]
-  (let [colors [["bg-yellow-100" "lsp" "telescope"]
-                ["bg-orange-100" "ai" "llm" "lua"]
-                ["bg-red-100" "colorscheme" "theme"]
-                ["bg-cyan-100" "markdown" "treesitter"]
-                ["bg-indigo-100" "config" "dotfiles"]
-                ["bg-lime-100" "python" "rust"]
-                ["bg-blue-100" "neovim" "nvim"]
-                ["bg-purple-100" "vim" "plugin" "terminal"]]]
-
-    (or (some (fn [[color & topics]]
-                (when (some #(str/includes? topic %) topics)
-                  (format " %s " color)))
-              colors)
-        " bg-green-100 ")))
 
 (defn star-icon []
   [:svg {:class "w-4 h-4" :fill "currentColor" :viewBox "0 0 20 20"}

@@ -42,7 +42,7 @@
      [:li "Allow to watch plugins - done"]
      [:li "Allow plugin owners to edit plugin info - done"]
      [:li "Sort/filter by archived - done"]
-     [:li "Add compact view"]
+     [:li "Add compact view - done"]
      [:li "Dark mode"]
      [:li "Vim keyboard bindings"]
      [:li "Preview plugins' images"]]
