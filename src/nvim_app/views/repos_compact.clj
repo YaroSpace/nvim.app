@@ -16,7 +16,6 @@
   [:span {:class (str "inline-block px-1 py-0.5 rounded text-xs
                   font-medium" (topic-color topic) "text-gray-600")} topic])
 
-;; Creating ultra-compact tabular layout with minimal spacing
 (defn compact-plugin-card [user {:keys [repo url name description topics created updated
                                         stars stars_week stars_month watched]}]
   [:div {:class "flex items-center py-1 px-2 border-b border-green-200 hover:bg-green-100 transition-colors text-sm"
@@ -72,7 +71,7 @@
 ;; Updated table header colors to match page green scheme
 (defn compact-table-header []
   [:div {:class "flex items-center py-2 px-2 border-b-2 text-xs font-semibold text-green-800"
-         :style "background-color: #d3e4db; border-bottom-color: #c1d5c9;"}
+         :style (str bg-color "border-bottom-color: " border-color)}
    [:div {:class "w-64 flex-shrink-0"} "Plugin"]
    [:div {:class "w-16 flex-shrink-0 text-center"} "Stars"]
    [:div {:class "flex-1 px-3"} "Description"]
@@ -99,8 +98,8 @@
 
    ;; Updated container colors to match page green scheme
    [:div {:class "border rounded-lg overflow-hidden"
-          :style "border-color: #c1d5c9; background-color: #f0f6f1;"}
+          :style (str bg-color-compact "  border-color: " border-color)}
     (compact-table-header)
     [:div {:class "divide-y"
-           :style "--tw-divide-opacity: 1; border-color: #c1d5c9;"}
+           :style (str "--tw-divide-opacity: 1; border-color: " border-color)}
      (map (fn [plugin] (compact-plugin-card user plugin)) plugins)]]])

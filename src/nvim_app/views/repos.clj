@@ -94,6 +94,7 @@
     (el-with (dropdown-select url) {:id "category" :name "category" :title "Filter by" :class "w-auto sm:w-34"}
              [:option {:value "" :selected (= "" category)} "-"]
              (when user [:option {:value "watched" :selected (= "watched" category)} "*Watched*"])
+             [:option {:value "archived" :selected (= "archived" category)} "*Archived*"]
 
              (for [name categories]
                [:option {:value name :selected (= name category)} name]))
@@ -214,8 +215,8 @@
 
 (defn plugin-card [{:keys [user query-params] :as request}
                    {:keys [categories]}
-                   {:keys [id url name  description topics created updated
-                           stars stars_week stars_month] :as plugin}]
+                   {:keys [url name description topics created updated
+                           stars stars_week stars_month archived] :as plugin}]
   [:div {:id (str "repo-" (:id plugin))
          :class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
          :style bg-color}
@@ -224,10 +225,13 @@
     [:div {:class "flex-1"}
      (edit-category-dropdown query-params plugin categories)
 
-     [:a {:href url
-          :class "text-xl font-semibold text-green-900 mb-2 break-word overflow-hidden"
-          :style "word-break: break-word; overflow-wrap: anywhere; word-wrap: break-word; 
+     [:div {:class "flex items-center gap-2"} ; Flex container to align items horizontally
+      [:a {:href url
+           :class "text-xl font-semibold text-green-900 mb-2 break-word overflow-hidden"
+           :style "word-break: break-word; overflow-wrap: anywhere; word-wrap: break-word; 
                    white-space: normal; max-width: 100%; hyphens: auto;"} name]
+      (when archived
+        [:span {:title "Archived"} (archived-icon)])]
 
      [:p {:class "text-gray-600 mb-3"} description]
 

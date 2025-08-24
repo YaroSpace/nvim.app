@@ -39,14 +39,13 @@
     [:h2 {:class "shrink-0 pe-4 text-xl font-semibold"} "TODO"]
     [:br]
     [:ul {:class "list-disc list-inside"}
+     [:li "Allow to watch plugins - done"]
+     [:li "Allow plugin owners to edit plugin info - done"]
+     [:li "Sort/filter by archived - done"]
      [:li "Add compact view"]
-     [:li "Preview plugins' images"]
-     [:li "Allow to watch plugins"]
-     [:li "Allow plugin owners to edit plugin info"]
      [:li "Dark mode"]
-     [:li "Add categories: websites, ..."]
-     [:li "Sort/filter by archived"]
-     [:li "Vim keyboard bindings"]]
+     [:li "Vim keyboard bindings"]
+     [:li "Preview plugins' images"]]
     [:br]
 
     [:p "If you have ideas or suggestions, please feel free to to open an issue or a feature request on "
