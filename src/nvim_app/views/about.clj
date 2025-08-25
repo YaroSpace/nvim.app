@@ -4,7 +4,7 @@
 (defn index [request]
   (base-layout
    request
-   [:div {:class "max-w-4xl mx-auto p-6 text-justify text-green-900 text-lg"}
+   [:div {:class "max-w-4xl mx-auto p-6 text-justify text-nvim-text text-lg"}
     [:span {:class "flex items-center"}
      [:span {:class "shrink-0 pe-4 text-xl font-semibold"} "About"]
      [:span {:class "h-px flex-1 bg-gray-300"}]]
@@ -17,7 +17,7 @@
      [:p "The data is collected from "
       [:a {:class "font-semibold" :href "https://github.com/rockerBOO/awesome-neovim"} "Awesome Neovim"]
       " and searched in " [:span {:class "font-semibold"} "GitHub"] " for topics "
-      [:span {:class "bg-gray-100 font-mono text-sm px-1.5 py-0.5 rounded"} "neovim, nvim, plugin"]
+      [:span {:class "bg-gray-100 text-black font-mono text-sm px-1.5 py-0.5 rounded"} "neovim, nvim, plugin"]
       ", so some users' configs may also end up in the catalog."]
      [:br]
 
@@ -43,7 +43,7 @@
      [:li "Allow plugin owners to edit plugin info - done"]
      [:li "Sort/filter by archived - done"]
      [:li "Add compact view - done"]
-     [:li "Dark mode"]
+     [:li "Dark mode - done"]
      [:li "Vim keyboard bindings"]
      [:li "Preview plugins' images"]]
     [:br]

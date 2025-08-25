@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:is(.dark *));
 
 .htmx-indicator{
      opacity:0;
@@ -12,3 +12,142 @@
  .htmx-request.htmx-indicator{
      opacity:1;
  }
+
+:root {
+  --color-nvim-surface: #e7eee8;
+  --color-nvim-surface-card: #d3e4db;
+  --color-nvim-surface-card-compact: #f0f6f1;
+
+  --color-nvim-border: #c1d5c9;
+
+  --color-nvim-accent: #059669;
+  --color-nvim-accent-hover: #047857;
+
+  --color-nvim-text: #065f46;
+  --color-nvim-text-muted: #6b7280;
+}
+
+.dark {
+  --color-nvim-surface: #1e293b;
+  --color-nvim-surface-card: #334155;
+  --color-nvim-surface-card-compact: #334155;
+
+  --color-nvim-border: #475569;
+  --color-nvim-accent: #34d399;
+  --color-nvim-accent-hover: #6ee7b7;
+
+  --color-nvim-text: #f1f5f9;
+  --color-nvim-text-muted: #94a3b8;
+}
+
+@theme inline {
+  --color-nvim-surface: var(--color-nvim-surface);
+  --color-nvim-surface-card: var(--color-nvim-surface-card);
+  --color-nvim-surface-card-compact: var(--color-nvim-surface-card-compact);
+
+  --color-nvim-border: var(--color-nvim-border);
+  --color-nvim-accent: var(--color-nvim-accent);
+  --color-nvim-accent-hover: var(--color-nvim-accent-hover);
+
+  --color-nvim-text: var(--color-nvim-text);
+  --color-nvim-text-muted: var(--color-nvim-text-muted);
+}
+
+@layer utilities {
+  option {
+    /* background: white !important; */
+    @apply bg-white dark:bg-nvim-surface;
+  }
+
+  /* Surface colors for backgrounds */
+  .bg-surface {
+    @apply bg-nvim-surface;
+  }
+
+  .bg-surface-card {
+    @apply bg-nvim-surface-card;
+  }
+
+  .bg-surface-card-compact {
+    @apply bg-nvim-surface-card-compact;
+  }
+
+  /* Primary brand colors */
+  .bg-brand {
+    @apply bg-green-600 dark:bg-green-500;
+  }
+  .bg-brand-hover {
+    @apply bg-green-50 dark:bg-green-900/20;
+  }
+  .bg-brand-active {
+    @apply bg-green-100 dark:bg-green-800/30;
+  }
+
+  /* Text hierarchy */
+  .text-primary {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+  .text-secondary {
+    @apply text-gray-700 dark:text-green-400 dark:font-semibold;
+  }
+  .text-topic {
+    @apply text-gray-700 dark:text-nvim-surface-card;
+  }
+  .text-muted {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+  .text-subtle {
+    @apply text-gray-500 dark:text-gray-400;
+  }
+  .text-disabled {
+    @apply text-gray-400 dark:text-gray-600;
+  }
+
+  /* Brand text colors */
+  .text-brand {
+    @apply text-green-700 dark:text-green-400;
+  }
+  .text-brand-emphasis {
+    @apply text-green-800 dark:text-green-300;
+  }
+  .text-brand-strong {
+    @apply text-green-900 dark:text-green-200;
+  }
+  .text-category {
+    @apply text-blue-500 dark:text-blue-500;
+  }
+  .text-brand-hover {
+    @apply text-green-900 dark:text-green-100;
+  }
+
+  /* Border colors */
+  .border-subtle {
+    @apply border-gray-200 dark:border-gray-700;
+  }
+  .border-muted {
+    @apply border-gray-300 dark:border-gray-600;
+  }
+  .border-brand {
+    border-color: var(--color-nvim-border);
+    /* @apply border-green-500 dark:border-green-400; */
+  }
+  .border-brand-light {
+    @apply border-green-200 dark:border-green-800;
+  }
+
+  /* Focus and interaction states */
+  .focus-brand {
+    @apply focus:outline-none focus:ring-2 focus:ring-nvim-accent
+  }
+  .focus-brand-border {
+    @apply focus:border-transparent;
+  }
+
+  /* Hover states */
+  .hover-brand {
+    @apply hover:bg-green-50 dark:hover:bg-gray-600;
+  }
+  .hover-brand-text {
+    @apply hover:text-green-900 dark:hover:text-green-100;
+  }
+}

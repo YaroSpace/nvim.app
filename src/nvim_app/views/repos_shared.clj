@@ -18,7 +18,7 @@
               colors)
         " bg-green-100 ")))
 
-(def hx-include "#search-input, #limit-input, #category, #sort, #group, #view, #mode")
+(def hx-include "#search-input, #limit-input, #category, #sort, #group")
 
 (defn date->str [date]
   (first (str/split (str date) #" ")))
@@ -36,30 +36,30 @@
                (when body body))))
 
 (defn view-toggle [view]
-  [:button {:title (if (= "full" view) "Compact view" "Full view")
-            :name "view" :value (if (= "full" view) "compact" "full")
-            :class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
-                        focus:outline-none focus:ring-2 focus:ring-green-500
+  (let [full? (or (nil? view) (= "full" view))]
+    [:button {:title (if full? "Compact view" "Full view")
+              :name "view" :value (if full? "compact" "full")
+              :class "p-2 text-brand hover-brand-text hover-brand rounded-lg transition-colors 
+                        focus-brand
                         disabled:opacity-50 disabled:cursor-not-allowed"
-            :hx-get "/repos-page" :hx-target "#plugins-list" :hx-include hx-include :hx-params "not #view"}
-   [:input {:id "view" :class "hidden" :name "view" :value (if (= "full" view) "full" "compact")}]
-   (if (= "full" view) (compact-view-icon) (full-view-icon))])
+              :hx-get "/repos-page" :hx-target "#plugins-list" :hx-include hx-include}
+     (if full? (compact-view-icon) (full-view-icon))]))
 
 (defn mode-toggle [mode]
-  [:button {:title (if (= "light" mode) "Dark mode" "Light mode")
-            :name "mode" :value (if (= "light" mode) "dark" "light")
-            :class "p-2 text-green-700 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors 
-                        focus:outline-none focus:ring-2 focus:ring-green-500
+  (let [light?  (or (nil? mode) (= "light" mode))]
+    [:button {:title (if light?  "Dark mode" "Light mode")
+              :name "mode" :value (if light? "dark" "light")
+              :class "p-2 text-brand hover-brand-text hover-brand rounded-lg transition-colors 
+                        focus-brand
                         disabled:opacity-50 disabled:cursor-not-allowed"
-            :hx-get "/repos-page" :hx-target "#plugins-list" :hx-include hx-include :hx-params "not #mode"}
-   [:input {:id "mode" :class "hidden" :name "mode" :value (if (= "light" mode) "light" "dark")}]
-   (if (= "light" mode) (light-mode-icon) (dark-mode-icon))])
+              :hx-get "/" :hx-target "#plugins-list" :hx-include hx-include}
+     (if light? (dark-mode-icon) (light-mode-icon))]))
 
 (defn watch-button [repo-id repo watched]
   [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
             :name "repo" :value repo
             :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
-                        (if watched "text-blue-700" "text-green-700"))
+                        (if watched "text-blue-500" "text-brand"))
             :hx-put "/user/watch" :hx-target repo-id :hx-include hx-include
             :hx-select repo-id :hx-swap "outerHTML"}
    (watch-icon)])
@@ -73,7 +73,7 @@
 
 (defn edit-button [repo-id repo]
   [:button {:title "Edit" :name "edit" :value repo
-            :class "flex items-center pl-2 space-x-1 cursor-pointer text-green-700"
+            :class "flex items-center pl-2 space-x-1 cursor-pointer text-brand"
             :hx-get "/repos-page" :hx-include  hx-include
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
    (edit-icon)])
@@ -82,4 +82,4 @@
   (when (pos? number)
     [:div {:title title :class (str "flex items-center " color)}
      (icon)
-     [:span {:class "text-green-900"} (number->str number)]]))
+     [:span {:class "text-brand-strong"} (number->str number)]]))

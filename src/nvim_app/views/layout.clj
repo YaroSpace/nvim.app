@@ -2,7 +2,8 @@
   (:require
    [nvim-app.state :refer [dev? app-config]]
    [nvim-app.views.assets :refer :all]
-   [hiccup.page :refer [html5 include-js include-css]]))
+   [hiccup.page :refer [html5 include-js include-css]]
+   [hiccup2.core :refer [raw]]))
 
 (defn google-analytics []
   [:div
@@ -29,19 +30,19 @@
 
 (defn menu-item [href text]
   [:a {:href href :onclick "toggleMenu(this)"
-       :class "block px-4 py-2 text-sm text-gray-700
-                          hover:bg-green-50 hover:text-green-900 transition-colors"} text])
+       :class "block px-4 py-2 text-sm text-secondary
+               hover-brand hover-brand-text transition-colors"} text])
 
 (defn menu []
   [:div {:class "relative"}
    [:button {:id "menu-btn"
-             :class "text-green-700 hover:text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-lg p-1"
+             :class "text-brand hover-brand-text focus-brand rounded-lg p-1"
              :type "button"
              :onclick "toggleMenu(this)"}
     (menu-icon)]
 
    [:div {:id "menu" :class "hidden absolute top-full left-0 mt-2 w-48
-                 bg-white rounded-lg shadow-lg border border-gray-200 z-50"}
+                 bg-surface-card rounded-lg shadow-lg border border-subtle z-50"}
     [:div {:class "py-1"}
      (menu-item "/" "Home")
      (menu-item "/news" "News")
@@ -57,8 +58,8 @@
       [:img {:src (:avatar_url user)}]]]))
 
 (defn header [{:keys [user]}]
-  [:header {:style (str bg-color "border-bottom: 1px solid " border-color)}
-   [:div {:class "max-w-4xl mx-auto px-4 py-6"}
+  [:header {:class "bg-surface-card border-b border-subtle"}
+   [:div {:class "max-w-4xl mx-auto px-4 py-4"}
     [:div {:class "flex items-center justify-between relative"}
      (menu)
 
@@ -67,26 +68,26 @@
              :onerror "this.style.display='none'; this.nextElementSibling.style.display='flex'"
              :src "/images/neovim.png"}]
 
-      [:div {:class "w-8 h-8 bg-green-600 rounded-full flex items-center justify-center"
+      [:div {:class "w-8 h-8 bg-brand rounded-full flex items-center justify-center"
              :style "display: none"}
        [:span {:class "text-white text-sm font-bold"} "N"]]
 
-      [:h1 {:class "text-2xl font-bold text-green-900"} "Neovim Plugins Catalog"]]
+      [:h1 {:class "text-2xl font-bold text-brand-strong"} "Neovim Plugins Catalog"]]
 
      [:div {:class "flex items-center space-x-4"}
       (if (-> app-config :app :features :auth)
         (user-login user)
 
         [:a {:title "Nvim.app on GitHub"
-             :class "text-gray-600 hover:text-gray-900"
+             :class "text-muted hover:text-primary"
              :href "https://github.com/yarospace/nvim.app"}
          (github-icon)])]]]])
 
 (def footer
-  [:footer {:style (str bg-color "margin-top: 0rem; border-top: 1px solid " border-color)}
+  [:footer {:class "bg-surface-card mt-0 border-t border-subtle"}
    [:div {:class "max-w-4xl mx-auto px-4 py-8"}
     [:div {:class "text-center"}
-     [:h2 {:class "text-2xl font-bold text-gray-900 tracking-wider"}]]]])
+     [:h2 {:class "text-2xl font-bold text-primary tracking-wider"}]]]])
 
 (defn base-layout
   ([body]
@@ -96,8 +97,12 @@
   ([{:keys [head_include body_include]} request body]
    (html5
     (head head_include)
+    [:body {:class "min-h-screen bg-surface text-primary"}
+     (let [mode (:mode request)]
+       (if (or (nil? mode) (= "light" mode))
+         [:script (raw "document.documentElement.classList.remove('dark');")]
+         [:script (raw "document.documentElement.classList.add('dark');")]))
 
-    [:body {:style (str "min-height: 100vh;" body-color)}
      (when body_include body_include)
 
      (when-let [flash (:flash request)]

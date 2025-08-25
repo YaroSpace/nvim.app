@@ -5,7 +5,7 @@
    [nvim-app.views.repos-compact :as compact]
    [nvim-app.views.repos-shared :refer :all]
    [nvim-app.state :refer [dev?]]
-   [hiccup2.core :refer [html]]
+   [hiccup2.core :refer [html raw]]
    [hiccup.page :refer [include-js]]
    [hiccup.util :as u]
    [clojure.string :as str])
@@ -34,20 +34,18 @@
            :hx-get url :hx-include hx-include :hx-target "#plugins-list"
            :hx-trigger "submit, keyup changed delay:300ms from:input[name='q']"}
 
-    [:input {:class "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none 
-                     focus:ring-2 focus:ring-green-500 focus:border-transparent"
+    [:input {:class "w-full px-4 py-3 border border-muted rounded-lg focus-brand focus-brand-border bg-surface-card"
              :id "search-input" :name "q" :value query
              :placeholder "category, name, repo, description, topics ..."
-             :style bg-color :type "text"}]
+             :type "text"}]
 
-    [:div {:class "absolute right-6 top-4 text-green-600"}
+    [:div {:class "absolute right-6 top-4 text-brand"}
      (search-icon)]]])
 
 (defn dropdown-select [url]
-  [:select {:class "appearance-none bg-transparent border border-green-500 rounded-lg
-                      px-3 py-2 pr-8 text-sm text-gray-700 
-                      focus:outline-none focus:ring-2 focus:ring-green-600
-                      focus:border-transparent"
+  [:select {:class "dark:scheme-dark appearance-none bg-transparent border border-brand rounded-lg
+                      px-3 py-2 pr-8 text-sm text-secondary 
+                      focus-brand focus-brand-border"
             :hx-get url :hx-include hx-include :hx-target "#plugins-list"
             :hx-trigger "change delay:500ms"}])
 
@@ -92,9 +90,9 @@
      (chevron-down-icon)]]])
 
 (defn pagination-btn []
-  [:button {:class "px-3 py-2 text-sm font-medium text-green-700
-                      bg-transparent border border-green-500 rounded-lg hover:bg-green-50 active:bg-green-50
-                      focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent focus: bg-green-50 
+  [:button {:class "px-3 py-2 text-sm font-medium text-brand
+                      bg-transparent border border-brand rounded-lg hover-brand active:bg-brand-active
+                      focus-brand focus-brand-border focus:bg-brand-hover 
                       disabled:opacity-50 disabled:cursor-not-allowed"
             :hx-include hx-include :hx-target "#plugins-list"
             :hx-on:htmx:before-request "document.documentElement.scrollIntoView({ behavior: 'smooth'});"
@@ -115,26 +113,26 @@
 (defn controls-and-pagination [user url {:keys [group sort category categories
                                                 page total limit]}]
   [:div {:class "flex flex-col md:flex-row items-center justify-between 
-                 mt-4 mb-4 py-3 px-4 gap-4 max-w-4xl mx-auto"
-         :style (str bg-color "border-radius: 8px;")}
+                 mt-4 mb-4 py-3 px-4 gap-4 max-w-4xl mx-auto bg-surface-card rounded-lg"}
 
-   [:div {:class "flex flex-wrap gap-y-4 justify-center items-center space-x-2 text-green-700"}
+   [:div {:class "flex flex-wrap gap-y-4 justify-center items-center space-x-2 text-brand"}
     (group-icon) (group-dropdown url group)
     (sort-icon) (sort-dropdown url sort)
     (category-icon) (category-dropdown user url category categories)]
 
    [:div {:class "flex items-center space-x-2"}
-    [:div {:class "text-sm font-light text-green-700 font-medium mr-2"}
+    [:div {:class "text-sm font-light text-brand font-medium mr-2"}
      (str "Page " page " / " total)]
 
     (pagination-btn-previous url page)
 
     [:input {:id "limit-input" :name "limit" :title "Results per page"
-             :class "w-16 px-2 py-1.5 bg-transparent border border-green-500 rounded-lg text-sm text-center
-                     focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+             :class "w-16 px-2 py-1.5 bg-transparent border border-brand rounded-lg 
+                     text-sm text-center text-secondary focus-brand focus-brand-border
+                     dark:scheme-dark"
              :type "number" :min "1" :max "100" :value (or limit "10")
              :hx-get url :hx-include hx-include :hx-target "#plugins-list"
-             :hx-trigger "submit, input, keyup changed delay:500ms"}]
+             :hx-trigger "submit, input delay:500ms, keyup changed delay:500ms"}]
 
     [:input {:id "current-page" :href "#" :class "hidden"
              :hx-get (u/url url {:page page}) :hx-include hx-include :hx-target "#plugins-list"}]
@@ -145,19 +143,19 @@
   [:div {:class "flex items-center justify-center space-x-2"}
    (pagination-btn-previous url page)
 
-   [:div {:class "text-sm font-light text-green-700 font-medium px-2"}
+   [:div {:class "text-sm font-light text-brand font-medium px-2"}
     (str "Page " page " out of " total)]
 
    (pagination-btn-next url page total)])
 
 (defn plugin-topic [topic]
   [:span {:class (str "inline-flex items-center px-2 py-1 rounded-full text-xs
-                  font-medium" (topic-color topic) "green-100 text-gray-700")} topic])
+                  font-medium" (topic-color topic) "green-100 text-topic")} topic])
 
 (defn user-section [{:keys [user query-params]}
                     {:keys [id repo owner watched]}]
   (let [repo-id (str "#repo-" id)]
-    [:div {:class "flex"}
+    [:div {:class "flex pt-2 sm:pt-0"}
      (watch-button repo-id repo watched)
 
      (when (or (= (:username user) owner)
@@ -171,10 +169,9 @@
     [:div {:class "flex items-center space-x-1 mb-2"}
      [:div {:class "relative"}
       [:select {:id "category-edit" :name "category-edit" :title "Edit category"
-                :class "appearance-none bg-transparent border border-green-500 rounded-lg
-                      px-3 py-2 pr-8 text-sm text-gray-700 
-                      focus:outline-none focus:ring-2 focus:ring-green-600
-                      focus:border-transparent w-auto sm:w-34"}
+                :class "appearance-none bg-transparent border border-brand rounded-lg
+                      px-3 py-2 pr-8 text-sm text-secondary 
+                      focus-brand focus-brand-border w-auto sm:w-34"}
 
        [:option {:value "" :selected (nil? category)} "-"]
        (for [name categories]
@@ -188,8 +185,7 @@
                    {:keys [url name description topics created updated
                            stars stars_week stars_month archived] :as plugin}]
   [:div {:id (str "repo-" (:id plugin))
-         :class "rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
-         :style bg-color}
+         :class "rounded-lg border border-subtle p-6 hover:shadow-md transition-shadow bg-surface-card"}
 
    [:div {:class "flex items-start justify-between"}
     [:div {:class "flex-1"}
@@ -197,19 +193,19 @@
 
      [:div {:class "flex items-center gap-2"} ; Flex container to align items horizontally
       [:a {:href url
-           :class "text-xl font-semibold text-green-900 mb-2 break-word overflow-hidden"
+           :class "text-xl font-semibold text-brand-strong mb-2 break-word overflow-hidden"
            :style "word-break: break-word; overflow-wrap: anywhere; word-wrap: break-word; 
                    white-space: normal; max-width: 100%; hyphens: auto;"} name]
       (when archived
         [:span {:title "Archived"} (archived-icon)])]
 
-     [:p {:class "text-gray-600 mb-3"} description]
+     [:p {:class "text-muted mb-3"} description]
 
      (when (seq topics)
        [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
         (map plugin-topic (str/split topics #" "))])
 
-     [:div {:class "text-sm text-gray-500 flex flex-col sm:flex-row sm:space-x-4 mt-4"}
+     [:div {:class "text-sm text-subtle flex flex-col sm:flex-row sm:space-x-4 mt-4"}
       (let [created (date->str created)]
         (when (not= "1970-01-01" created)
           [:span "Created: " created]))
@@ -228,19 +224,19 @@
        (star (- stars stars_month) growth-icon-m "space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])]])
 
 (defn category-section [request params n show-group? group-name plugins]
-  (if (= "compact" (:view params))
+  (if (= "compact" (:view request))
     (compact/category-section request params n show-group? group-name plugins)
 
     [:div {:class "mb-8"}
      [:div {:class "flex items-center justify-between mb-4"}
       [:h2 {:class (when-not show-group? "invisible")}
-       [:span {:class "text-xl font-semibold text-green-800"} "Category: "]
-       [:span {:class "text-xl font-semibold text-blue-700"} group-name]]
+       [:span {:class "text-xl font-semibold text-brand-emphasis"} "Category: "]
+       [:span {:class "text-xl font-semibold text-category"} group-name]]
 
       (when (= 0 n)
         [:div {:class "flex items-center space-x-2"}
-         (mode-toggle (:mode params "light"))
-         (view-toggle (:view params "compact"))])]
+         (mode-toggle (:mode request))
+         (view-toggle (:view request))])]
 
      [:div {:class "space-y-6"}
       (map (fn [plugin] (plugin-card request params plugin)) plugins)]]))
@@ -265,14 +261,13 @@
        (pagination-btm url page total)]))))
 
 (defn main [request params]
-  (let [{:keys [q]} params url "/repos-page"]
+  (let [url "/repos-page"]
     (base-layout
      {:head_include (when-not dev? (include-js "/js/repos.js"))}
      request
      [:div {:class "max-w-4xl mx-auto px-4 py-6"}
-      (search-input url q)
-      [:img {:id "indicator" :class "htmx-indicator" :src "/images/loader.svg"
-             :style "display: none;"}]
+      (search-input url (:q params))
+      [:img {:id "indicator" :class "htmx-indicator hidden" :src "/images/loader.svg"}]
 
       [:div {:id "plugins-list" :class "max-w-4xl mx-auto px-4 pb-6"
              :hx-get (u/url url params) :hx-target "#plugins-list"
