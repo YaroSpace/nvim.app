@@ -52,9 +52,11 @@
 (def repos-index
   {:name :repos-index
    :enter (fn [{:keys [request] :as context}]
-            (assoc context :response
-                   {:status 200
-                    :body (repos/main request (-> request :session :params))}))})
+            (let [{:keys [query-params]} request]
+              (assoc context :response
+                     {:status 200
+                      :body (repos/main request query-params)})))})
+
 (def repo-update
   {:name :repo-update
    :enter (fn [{:keys [request] :as context}]
@@ -75,7 +77,7 @@
   {:name :repos-page
    :enter
    (fn [{:keys [request] :as context}]
-     (let [{:keys [query-params session accept user]} request
+     (let [{:keys [query-params accept user]} request
            {:keys [q category sort page limit]} query-params
 
            page   (parse-long (or (not-empty page) "1"))
@@ -84,7 +86,6 @@
 
            matched (repo/search-repos q category sort offset limit user)
            categories (into (sorted-set) (map :name (db/select :categories)))
-
            total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
 
        (assoc context :response
@@ -95,10 +96,8 @@
                                                  matched
                                                  (assoc query-params
                                                         :categories categories
-                                                        :page page
-                                                        :limit limit
-                                                        :total total)))
-               :session (assoc session :params query-params)})))})
+                                                        :total total
+                                                        :page page :limit limit)))})))})
 
 (def github-login
   {:name :github-login

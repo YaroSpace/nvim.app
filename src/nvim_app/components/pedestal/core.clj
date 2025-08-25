@@ -108,10 +108,39 @@
   (interceptor/interceptor
    {:name ::inject-auth
     :enter (fn [{:keys [request] :as context}]
-             (if-let [user (and (-> app-config :app :features :auth)
-                                (-> request :session :user))]
-               (assoc-in context [:request :user] (db/select-one :users :id user))
-               context))}))
+             (let [_ (:session request)]
+               (if-let [user (-> request :session :user)]
+                 (assoc-in context [:request :user] (db/select-one :users :id user))
+                 context)))}))
+
+(def request-interceptor
+  ; add mode, view and query params from session if not present
+  (interceptor/interceptor
+   {:name ::enrich-request
+    :enter (fn [{:keys [request] :as context}]
+             (let [{:keys [session query-params]} request
+                   query-params (or query-params (:query-params session))]
+               (assoc context :request
+                      (merge request
+                             {:query-params query-params
+                              :mode (:mode query-params (:mode session))
+                              :view (:view query-params (:view session))}))))
+
+    ; save mode, view and query params to session
+    :leave (fn [{:keys [request response] :as context}]
+             (let [{:keys [query-params session]} request]
+               (assoc-in context [:response :session]
+                         (merge session
+                                (:session response)
+                                {:query-params (or query-params (:query-params session))}
+                                (select-keys request [:mode :view])))))}))
+
+(defn cookie-params [config]
+  {:cookie-name "nvim-app-session"
+   :store (cookie-store (when (string? (:cookie-key config))
+                          {:key (.getBytes (:cookie-key config))}))
+   :cookie-attrs {:max-age 2592000 :path "/"
+                  :http-only true :secure true}})
 
 (defn service-map [config]
   {::http/routes r/routes
@@ -120,10 +149,7 @@
    ::http/port (:port config)
    ::http/host (:host config)
    ::http/not-found-interceptor not-found-interceptor
-   ::http/enable-session {:cookie-name "nvim-app-session"
-                          :store (cookie-store (when (string? (:cookie-key config))
-                                                 {:key (.getBytes (:cookie-key config))}))
-                          :cookie-attrs {:max-age 2592000 :path "/" :http-only true :secure true}}
+   ::http/enable-session (cookie-params config)
    ::http/join? false})
 
 (defrecord PedestalComponent [config]
@@ -137,6 +163,7 @@
                              concat [exception-interceptor
                                      (inject-dependencies-interceptor this)
                                      auth-interceptor
+                                     request-interceptor
                                      (ring-middlewares/flash)
                                      (body-params/body-params)
                                      coerce-body-interceptor
