@@ -3,7 +3,9 @@
    [clj-http.client :as http]
    [cheshire.core :as json]
    [clojure.tools.logging :as log]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [markdown.core :as md]
+   [hiccup2.core :refer [raw]]))
 
 (defn json-parse
   ([data]
@@ -58,3 +60,6 @@
                           status " " (select-keys resp [:status :errors :body])))
           (tap> resp))
         resp))))
+
+(defn markdown->html [text]
+  (raw (md/md-to-html-string text)))

@@ -151,3 +151,53 @@
     @apply hover:text-green-900 dark:hover:text-green-100;
   }
 }
+
+@layer components {
+  .markdown {
+    @apply font-sans leading-relaxed bg-nvim-surface text-nvim-text p-5;
+
+    p {
+      @apply my-4;
+    }
+
+    a {
+      @apply text-nvim-accent no-underline;
+
+      &:hover {
+        @apply text-nvim-accent-hover underline;
+      }
+    }
+
+    strong {
+      @apply font-bold;
+    }
+
+    code {
+      @apply font-mono bg-nvim-surface-card-compact text-nvim-text px-1 py-0.5 rounded text-sm;
+    }
+
+    pre {
+      @apply bg-nvim-surface-card text-nvim-text p-4 rounded overflow-x-auto;
+
+      code {
+        @apply bg-transparent text-inherit p-0 text-sm;
+      }
+    }
+
+    h2 {
+      @apply text-nvim-text border-b-2 border-nvim-border pb-1 mt-6;
+    }
+
+    ul {
+      @apply my-4 pl-5 list-disc;
+
+      li {
+        @apply my-2;
+
+        &:has(input[type="checkbox"]:checked) {
+          @apply line-through text-nvim-text-muted;
+        }
+      }
+    }
+  }
+}
