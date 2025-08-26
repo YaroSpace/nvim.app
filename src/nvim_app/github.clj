@@ -165,13 +165,21 @@
 
     (process-github-response-async (query-for :main-query) cursors-ch update-fn)))
 
+(defn errors-summary [errors]
+  (->> errors
+       (group-by :type)
+       (map (fn [[type errors]] [type (str/join "\n" (map :message errors))]))
+       (map (fn [[type msgs]] (str type "\n" msgs)))
+       (str/join "\n\n")))
+
 (defn log-update-results [result start-time]
   (let [{:keys [results errors rate-limit]} result]
     (log/info "Github: Updated TOTAL:" (count results) "repositories in"
               (/ (- (System/currentTimeMillis) start-time) 1000.0) "s")
 
     (when errors
-      (log/warn "Github: Errors TOTAL during update" (count errors)))
+      (log/error "Github: Errors TOTAL during update" (count errors))
+      (log/error "Github: Errors Summary\n" (errors-summary errors)))
 
     (log/info "Github: Rate limit remaining:" (:remaining rate-limit))))
 
@@ -248,7 +256,7 @@
 
       (log/info "Github: Updated data for" (count results) "repos")
       (when errors
-        (log/error "Github: Errors updating repos data" errors))
+        (log/warn "Github: Errors updating repos data" errors))
 
       (a/>! out-ch resp-norm))
     (a/close! out-ch)))
@@ -339,15 +347,9 @@
 
 (comment
   (update-all!)
-  (take 5 (awesome/get-plugins))
-  (db/select :repos
-             :where [:not= :category_id nil])
-  (a/go (update-all!))
   (a/<!! (search-github-async "sqlite.lua"))
-  (sort (map ns-name (all-ns)))
   (->> (db/select :repos)
        (mapcat #(str/split (:topics %) #" "))
        (frequencies)
        (sort-by val >)
        (take 40)))
-      ; (map key)))

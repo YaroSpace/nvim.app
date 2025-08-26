@@ -18,6 +18,9 @@
        (when (:verbose opts)
          (log/error (str "Failed to parse JSON: " data " - " (ex-message e))))))))
 
+(defn markdown->html [text]
+  (raw (md/md-to-html-string text)))
+
 (defn truncate
   [data & {:keys [lines] :or {lines 2}}]
   (str (->> (str/split data #"\n|\\n")
@@ -27,7 +30,7 @@
 
 (defn fetch-request
   "
-  Makes request using clj-http.client and returns {:status, :body, :errors, :response}.
+  Makes request using clj-http.client and returns {:status, :body, :errors}.
   Body and errors are parsed as json if possible. 
   Errors are a merge of exception data and errors field from response body.
   Logs error on failure.
@@ -60,6 +63,3 @@
                           status " " (select-keys resp [:status :errors :body])))
           (tap> resp))
         resp))))
-
-(defn markdown->html [text]
-  (raw (md/md-to-html-string text)))

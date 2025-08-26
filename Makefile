@@ -35,6 +35,9 @@ db:
 css:
 	npx @tailwindcss/cli -i resources/public/css/in.css -o resources/public/css/out.css --minify
 
+css_watch:
+	npx @tailwindcss/cli -i resources/public/css/in.css -o resources/public/css/out.css --minify --watch
+
 sync:
 	browser-sync start --proxy localhost:6080 -f src
 
