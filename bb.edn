@@ -1,0 +1,15 @@
+{:tasks
+ {:init (do (defn sh [& args]
+              (binding [*out* *err*]
+                (apply println "+" args))
+              (apply shell args))
+            (defn tailwindcss
+              [cmd]
+              (sh (str "tailwindcss -i input.css -o ./resources/public/css/output.css " cmd))))
+
+  tailwind:watch {:doc "Build TailwindCSS in watch mode"
+                  :task (tailwindcss "--watch")}
+  tailwind:build {:doc "Build TailwindCSS output"
+                  :task (tailwindcss nil)}
+  tailwind:minify {:doc "Build & minify TailwindCSS"
+                   :task (tailwindcss "--minify")}}}

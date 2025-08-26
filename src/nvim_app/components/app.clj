@@ -3,6 +3,7 @@
    [nvim-app.state :refer [app-system-atom]]
    [nvim-app.github :as github]
    [nvim-app.db.core :as db]
+   [nvim-app.logging :refer [wrap-logging-with-notifications]]
    [nvim-app.components.sched :as sched]
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]))
@@ -21,6 +22,9 @@
     (reset! app-system-atom this)
     (alter-var-root #'nvim-app.state/app-config (constantly config))
     (alter-var-root #'nvim-app.state/dev? (constantly (= :dev (-> config :app :env))))
+
+    (when (-> config :telegram :enable)
+      (wrap-logging-with-notifications))
 
     (when (:update-on-start? app)
       (github/update-all!))

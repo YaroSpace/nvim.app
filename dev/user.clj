@@ -2,13 +2,13 @@
   (:require
    [spy.reader]
    [nrepl.core :as nrepl]
-   [clojure.repl :as t]
    [clojure.tools.namespace.repl :as repl]
    [clojure.test :as test]
    [clojure.string :as str]
    [rebel-readline.clojure.main :as main]
    [puget.printer :as puget]
    [hashp.preload]
+   [hashp.config]
    [user.java :refer :all])
 
   (:import
@@ -74,11 +74,11 @@
      (println line))))
 
 (defn tap>> [data-or-label & [data]]
-  (let [data (or data data-or-label)]
+  (let [data* (or data data-or-label)]
     (when data (clojure.core/tap> data-or-label))
-    (clojure.core/tap> data)
+    (clojure.core/tap> data*)
     (clojure.core/tap> "================================================>")
-    data))
+    data*))
 
 (defn portal-start []
   (require '[portal.api :as inspect])

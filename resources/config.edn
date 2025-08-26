@@ -2,7 +2,7 @@
 
  :server  {:port #long #or [#env NVIM_APP_PORT 6080]
            :host #or [#env NVIM_APP_HOST "localhost"]
-           :cookie-key #profile {:default nil :dev "1234567890123456"}}
+           :cookie-key #profile {:default "1234567890123456" :dev "1234567890123456"}}
 
  :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
            :username #or [#env DATABASE_USER "nvim"]
@@ -26,6 +26,8 @@
 
  :app     {:env #profile {:default :prod :dev :dev}
            :update-on-start? #profile {:default false :dev false}
-           :features {:auth #profile {:default true :dev true}}}}
+           :features {:auth #profile {:default true :dev true}}}
 
-
+ :telegram {:bot-token #or [#env TELEGRAM_BOT_TOKEN #ref [:secrets :telegram :bot-token]]
+            :chat-id #or [#env TELEGRAM_CHAT_ID #ref [:secrets :telegram :chat-id]]
+            :enable #profile {:default true :dev false}}}

@@ -185,7 +185,7 @@
     }
 
     h2 {
-      @apply text-nvim-text border-b-2 border-nvim-border pb-1 mt-6;
+      @apply text-nvim-text font-bold border-b-2 border-nvim-border pb-1 mt-6;
     }
 
     ul {
