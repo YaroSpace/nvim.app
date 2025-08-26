@@ -5,7 +5,7 @@
    [nvim-app.views.repos-compact :as compact]
    [nvim-app.views.repos-shared :refer :all]
    [nvim-app.state :refer [dev?]]
-   [hiccup2.core :refer [html raw]]
+   [hiccup2.core :refer [html]]
    [hiccup.page :refer [include-js]]
    [hiccup.util :as u]
    [clojure.string :as str])

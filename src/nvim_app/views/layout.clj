@@ -63,7 +63,7 @@
     [:div {:class "flex items-center justify-between relative"}
      (menu)
 
-     [:div {:class "flex items-center space-x-4"}
+     [:div {:class "flex items-center space-x-2 sm:space-x-6"}
       [:img {:alt "Neovim" :class "w-7 h-8" :crossorigin "anonymous"
              :onerror "this.style.display='none'; this.nextElementSibling.style.display='flex'"
              :src "/images/neovim.png"}]
@@ -97,7 +97,7 @@
   ([{:keys [head_include body_include]} request body]
    (html5
     (head head_include)
-    [:body {:class "min-h-screen bg-surface text-primary"}
+    [:body {:class "dark:scheme-dark min-h-screen bg-surface text-primary"}
      (let [mode (:mode request)]
        (if (or (nil? mode) (= "light" mode))
          [:script (raw "document.documentElement.classList.remove('dark');")]

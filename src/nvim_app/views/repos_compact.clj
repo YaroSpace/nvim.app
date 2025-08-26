@@ -9,9 +9,7 @@
 
    [:div {:class "pl-2 w-24 sm:w-48 flex-shrink-0"} "Plugin"]
    [:div {:class "min-w-16 sm:w-26 flex-shrink-0 text-center"} "Stars"]
-   [:div {:class "flex-1 px-1 sm:px-3"} "Description"]
-   [:div {:class "hidden w-20 sm:flex-shrink-0 text-center"} "Updated"]
-   [:div {:class "w-8 flex-shrink-0 text-center"} ""]])
+   [:div {:class "flex-1 px-1 sm:px-3"} "Description"]])
 
 (defn plugin-topic [topic]
   [:span {:class (str "inline-block px-1 py-0.5 rounded text-xs
@@ -56,13 +54,9 @@
     [:p {:class "text-secondary text-xs truncate"}
      (truncate-text description 80)]]
 
-   [:div {:class "hidden w-20 sm:flex-shrink-0 text-xs text-subtle text-center"}
-    (date->str updated)]
-
-   [:div {:class "w-8 flex-shrink-0 text-center"}
-    (when user
-      (let [repo-id (str "#repo-" id)]
-        (watch-button repo-id repo watched)))]])
+   (when-let [repo-id (and user (str "#repo-" id))]
+     [:div {:class "w-8 flex-shrink-0 text-center"}
+      (watch-button repo-id repo watched)])])
 
 (defn category-section [request params n show-group? group-name plugins]
   [:div {:class "mb-6 -mt-2"}
