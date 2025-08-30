@@ -101,10 +101,8 @@
                           :error "bg-red-50  dark:font-semibold border-red-200 text-red-800"
                           "bg-blue-50 dark:font-semibold border-blue-200 text-blue-800")]
 
-      [:div {:role "alert" :id "alert-box"
-             :class (str "fixed top-22 left-1/2 transform -translate-x-1/2 z-50 rounded-md border min-w-60 p-2 shadow-sm " alert-classes)}
-       [:script "setTimeout(() => { document.getElementById('alert-box').classList.add('hidden') }, 2000);"]
-
+      [:div {:role "alert"
+             :class (str alert-classes " alert-box fixed top-22 left-1/2 transform -translate-x-1/2 z-50 rounded-md border min-w-60 p-2 shadow-sm")}
        [:div {:class "flex items-start gap-4"}
         [:svg {:fill "none" :viewBox "0 0 24 24" :stroke-width "1.5" :stroke "currentColor"
                :class "size-6"}
@@ -115,7 +113,7 @@
          [:p {:class "mt-0.5 text-sm"} (:message message)]]
         [:button {:class "rounded-full transition-colors hover:bg-gray-50"
                   :type "button" :aria-label "Dismiss alert"
-                  :onClick "document.getElementById('alert-box').classList.add('hidden');"}
+                  :onClick "this.closest('div[role=\"alert\"]').classList.add('hidden');"}
          [:span {:class "sr-only"} "Dismiss popup"]
          [:svg {:fill "none" :viewBox "0 0 24 24" :stroke-width "1.5" :stroke "currentColor"
                 :class "size-5"}

@@ -100,13 +100,15 @@
 
 (defn pagination-btn-previous [url page]
   (el-with (pagination-btn)
-           {:hx-get (u/url url {:page (max 1 (dec page))})
+           {:id "btn-previous"
+            :hx-get (u/url url {:page (max 1 (dec page))})
             :disabled (<= page 1)}
            (chevron-left-icon)))
 
 (defn pagination-btn-next [url page total]
   (el-with (pagination-btn)
-           {:hx-get (u/url url {:page (min total (inc page))})
+           {:id "btn-next"
+            :hx-get (u/url url {:page (min total (inc page))})
             :disabled (>= page total)}
            (chevron-right-icon)))
 
@@ -246,7 +248,8 @@
    (html
     (let [url "/repos-page" user (:user request)]
       [:div {:class "space-y-6"}
-       (alert (:flash request))
+       [:div {:id "alert-container-repos"}
+        (alert (:flash request))]
        (controls-and-pagination user url params)
 
        (let [show-group? (some seq [group category])

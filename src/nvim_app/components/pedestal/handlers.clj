@@ -62,16 +62,19 @@
    :enter (fn [{:keys [request] :as context}]
             (let [{:keys [form-params]} request
                   repo {:category_id (:id (db/select-one :categories
-                                                         :name (:category-edit form-params)))}]
-              (when (every? some? (vals repo))
-                (db/update! :repos
-                            :values repo
-                            :where [:repo (:repo form-params)]))
+                                                         :name (:category-edit form-params)))}
+                  result (when (every? some? (vals repo))
+                           (db/update! :repos
+                                       :values repo
+                                       :where [:repo (:repo form-params)]))]
 
               (assoc context :response
                      (redirect (route/url-for :repos-page
                                               :params form-params)
-                               {:status 303}))))})
+                               {:status 303
+                                :flash (when result
+                                         {:success {:title "Saved"
+                                                    :message "Plugin data updated"}})}))))})
 
 (def repos-page
   {:name :repos-page
