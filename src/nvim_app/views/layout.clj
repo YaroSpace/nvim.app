@@ -104,9 +104,8 @@
          [:script (raw "document.documentElement.classList.add('dark');")]))
 
      (when body_include body_include)
-
-     (when-let [flash (:flash request)]
-       (alert flash))
+     [:div {:id "alert-container-main"}
+      (alert (:flash request))]
      (header request)
      body]
 

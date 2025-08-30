@@ -68,7 +68,8 @@
   [:button {:title "Save" :name "repo" :value repo
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-blue-700"
             :hx-put "/repo" :hx-include (str "#category-edit, " hx-include)
-            :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
+            :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"
+            :hx-select-oob "#alert-container-repos"}
    (save-icon)])
 
 (defn edit-button [repo-id repo]
