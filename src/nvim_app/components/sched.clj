@@ -22,7 +22,8 @@
   ([]
    (completed-tasks (:scheduler (:sched @state/app-system-atom))))
   ([^ScheduledThreadPoolExecutor scheduler]
-   (.getCompletedTaskCount  scheduler)))
+   (when scheduler
+     (.getCompletedTaskCount  scheduler))))
 
 (defrecord SchedComponent [config scheduler]
   component/Lifecycle

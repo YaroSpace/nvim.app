@@ -1,6 +1,16 @@
 (ns nvim-app.views.repos-shared
   (:require [nvim-app.views.assets :refer :all]
+            [io.pedestal.http.route :refer [url-for]]
             [clojure.string :as str]))
+
+(defn owner? [user plugin]
+  (= (:username user) (:owner plugin)))
+
+(defn admin? [user]
+  (= (:role user) "admin"))
+
+(defn can-edit? [user plugin]
+  (or (admin? user) (owner? user plugin)))
 
 (defn topic-color [topic]
   (let [colors [["bg-yellow-100" "lsp" "telescope"]
@@ -42,7 +52,7 @@
               :class "p-2 text-brand hover-brand-text hover-brand rounded-lg transition-colors 
                         focus-brand
                         disabled:opacity-50 disabled:cursor-not-allowed"
-              :hx-get "/repos-page" :hx-target "#plugins-list" :hx-include hx-include}
+              :hx-get (url-for :repos-page) :hx-target "#plugins-list" :hx-include hx-include}
      (if full? (compact-view-icon) (full-view-icon))]))
 
 (defn mode-toggle [mode]
@@ -65,9 +75,9 @@
    (watch-icon)])
 
 (defn save-button [repo-id repo]
-  [:button {:title "Save" :name "repo" :value repo
+  [:button {:id "save-btn" :title "Save" :name "repo" :value repo
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-blue-700"
-            :hx-put "/repo" :hx-include (str "#category-edit, " hx-include)
+            :hx-put "/repo" :hx-include (str "#category-edit, #description-edit, #hidden-toggle, " hx-include)
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"
             :hx-select-oob "#alert-container-repos"}
    (save-icon)])
@@ -75,7 +85,7 @@
 (defn edit-button [repo-id repo]
   [:button {:title "Edit" :name "edit" :value repo
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-brand"
-            :hx-get "/repos-page" :hx-include  hx-include
+            :hx-get (url-for :repos-page) :hx-include  hx-include
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
    (edit-icon)])
 

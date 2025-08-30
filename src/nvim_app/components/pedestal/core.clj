@@ -1,21 +1,23 @@
 (ns nvim-app.components.pedestal.core
   (:require
-   [nvim-app.state :refer [app-config dev?]]
+   [nvim-app.state :refer [dev?]]
    [nvim-app.db.core :as db]
    [nvim-app.components.pedestal.routes :as r]
    [nvim-app.components.pedestal.handlers :as h]
    [com.stuartsierra.component :as component]
    [io.pedestal.http :as http]
-   [io.pedestal.interceptor :as interceptor]
    [io.pedestal.http.content-negotiation :as content-negotiation]
-   [ring.middleware.session.cookie :refer [cookie-store]]
-   [io.pedestal.http.ring-middlewares :as ring-middlewares]
    [io.pedestal.http.body-params :as body-params]
+   [io.pedestal.http.route :as route]
+   [io.pedestal.http.ring-middlewares :as ring-middlewares]
+   [io.pedestal.interceptor :as interceptor]
+   [ring.middleware.session.cookie :refer [cookie-store]]
    [cheshire.core :as json]
    [cheshire.generate :refer [add-encoder encode-str]]
    [clojure.tools.logging :as log]
    [clojure.string :as str])
-  (:import [org.postgresql.util PGobject]))
+  (:import
+   [org.postgresql.util PGobject]))
 
 (add-encoder PGobject encode-str)
 
@@ -73,29 +75,31 @@
 (def not-found-interceptor
   {:name :not-found
    :leave (fn [context]
-            (if (-> context :response :status)
-              context
-              (h/not-found context)))})
+            (let [url-for-fn (delay (route/url-for-routes r/routes))]
+              (if (-> context :response :status)
+                context
+                (with-bindings {#'route/*url-for* url-for-fn}
+                  (h/not-found context)))))})
 
 (def exception-interceptor
   (interceptor/interceptor
    {:name ::exception
     :error (fn [context exception]
              (let [exception-type (-> exception class .getName)
-                   exception-message (.getMessage exception)]
+                   exception-message (.getMessage exception)
+                   ex-formatted {:error true
+                                 :exception-type exception-type
+                                 :message exception-message
+                                 :exception exception}]
 
-               (log/error :msg (str "Exception occurred: " exception-message))
+               (log/error :msg (str "Exception occurred:\n" ex-formatted))
                (when dev?
                  (tap> exception))
 
                (assoc context :response
                       (cond-> {:status 500
                                :headers {"Content-Type" "application/json"}}
-                        dev? (assoc :body
-                                    {:error true
-                                     :exception-type exception-type
-                                     :message exception-message
-                                     :exception exception})))))}))
+                        dev? (assoc :body ex-formatted)))))}))
 
 (defn inject-dependencies-interceptor
   [component]
@@ -134,7 +138,6 @@
                                 (:session response)
                                 {:query-params (or query-params (:query-params session))}
                                 (select-keys request [:mode :view])))))}))
-
 (defn cookie-params [config]
   {:cookie-name "nvim-app-session"
    :store (cookie-store (when (string? (:cookie-key config))
@@ -160,15 +163,15 @@
     (let [server (-> (service-map config)
                      (http/default-interceptors)
                      (update ::http/interceptors
-                             concat [exception-interceptor
-                                     (inject-dependencies-interceptor this)
-                                     auth-interceptor
-                                     request-interceptor
-                                     (ring-middlewares/flash)
-                                     (body-params/body-params)
-                                     coerce-body-interceptor
-                                     content-negotiation-interceptor
-                                     csp-interceptor])
+                             #(concat [exception-interceptor] %
+                                      [(inject-dependencies-interceptor this)
+                                       auth-interceptor
+                                       request-interceptor
+                                       (ring-middlewares/flash)
+                                       (body-params/body-params)
+                                       coerce-body-interceptor
+                                       content-negotiation-interceptor
+                                       csp-interceptor]))
                      (http/create-server)
                      (http/start))]
       (assoc this ::server server)))

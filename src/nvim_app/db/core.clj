@@ -51,7 +51,7 @@
   (query-one!
    {:update table
     :set values
-    :where (into [:=] where)}))
+    :where where}))
 
 (defn db-empty? []
   (empty? (query! {:select :table_name
@@ -98,7 +98,7 @@
     (migratus.core/pending-list config)))
 
 (comment
-  (migration-create! "user-table-add-watched")
+  (migration-create! "user-table-add-dirty-hide")
   (migration-up!)
   (migration-down!)
   (do

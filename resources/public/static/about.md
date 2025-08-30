@@ -25,7 +25,7 @@ Request headers should contain: **Accept: application/json**
 - [x] Sort/filter by archived - done
 - [x] Add compact view - done
 - [x] Dark mode - done
-- [] Vim keyboard bindings
+- [x] Vim keyboard bindings
 - [] Preview plugins' images
 
 If you have ideas or suggestions, please feel free to open an issue or a feature request on [GitHub](https://github.com/yarospace/nvim.app).
