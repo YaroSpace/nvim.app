@@ -15,7 +15,13 @@
 (extend-protocol rs/ReadableColumn
   Array
   (read-column-by-label [^Array v _]    (vec (.getArray v)))
-  (read-column-by-index [^Array v _ _]  (vec (.getArray v))))
+  (read-column-by-index [^Array v _ _]  (vec (.getArray v)))
+
+  org.postgresql.util.PGobject
+  (read-column-by-label [^org.postgresql.util.PGobject v _]
+    (.getValue v))
+  (read-column-by-index [^org.postgresql.util.PGobject v _ _]
+    (.getValue v)))
 
 (defn db-logger
   ([_ params]

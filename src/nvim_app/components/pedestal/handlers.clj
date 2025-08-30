@@ -9,7 +9,7 @@
    [nvim-app.views.about :as about]
    [nvim-app.views.not-found :as not-found]
    [nvim-app.utils :as u]
-   [io.pedestal.http.route :as route]
+   [io.pedestal.http.route :as route :refer [url-for]]
    [clojure.string :as str]))
    ; [schema.core :as s]
 
@@ -62,11 +62,14 @@
    :enter (fn [{:keys [request] :as context}]
             (let [{:keys [form-params]} request
                   repo {:category_id (:id (db/select-one :categories
-                                                         :name (:category-edit form-params)))}
+                                                         :name (:category-edit form-params)))
+                        :description (:description-edit form-params)
+                        :hidden (= "true" (:hidden-edit form-params))
+                        :dirty true}
                   result (when (every? some? (vals repo))
                            (db/update! :repos
                                        :values repo
-                                       :where [:repo (:repo form-params)]))]
+                                       :where [:= :repo (:repo form-params)]))]
 
               (assoc context :response
                      (redirect (route/url-for :repos-page
@@ -116,6 +119,15 @@
                                "?client_id=" client-id
                                "&redirect_uri=" redirect-uri
                                "&scope=" scope))))))})
+(def github-logout
+  {:name :github-logout
+   :enter
+   (fn [{:keys [request] :as context}]
+     (assoc context :response
+            (redirect (url-for :home)
+                      {:status 303
+                       :session (assoc (:session request) :user nil)})))})
+
 (defn get-access-token [code]
   (let [{:keys [client-id client-secret token-url]} (:github app-config)]
     (u/fetch-request
@@ -161,12 +173,13 @@
                                             :avatar_url avatar_url}])))]
 
        (assoc context :response
-              (redirect "/" {:session (assoc session :user (:id user))
-                             :flash (if user
-                                      {:success {:title "Login Successful"
-                                                 :message (str "Welcome, " (:name user) "!")}}
-                                      {:error {:title "Errors logging in"
-                                               :message (str/join ":" (remove nil? (vals errors)))}})}))))})
+              (redirect (url-for :home)
+                        {:session (assoc session :user (:id user))
+                         :flash (if user
+                                  {:success {:title "Login Successful"
+                                             :message (str "Welcome, " (:name user) "!")}}
+                                  {:error {:title "Errors logging in"
+                                           :message (str/join ":" (remove nil? (vals errors)))}})}))))})
 
 ; TODO: add error handling for auth calls
 
@@ -175,12 +188,11 @@
    :enter
    (fn [{:keys [request] :as context}]
      (let [{:keys [user form-params]} request]
-       (when-let [repo  (and user (:repo form-params))]
+       (when-let [repo (and user (:repo form-params))]
          (users/toggle-watched! (:id user) repo))
 
        (assoc context :response
-              (redirect (route/url-for :repos-page
-                                       :params form-params)
+              (redirect (route/url-for :repos-page :params form-params)
                         {:status 303}))))})
 
 (comment

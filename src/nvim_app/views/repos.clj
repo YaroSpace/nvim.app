@@ -5,6 +5,7 @@
    [nvim-app.views.repos-compact :as compact]
    [nvim-app.views.repos-shared :refer :all]
    [nvim-app.state :refer [dev?]]
+   [io.pedestal.http.route :refer [url-for]]
    [hiccup2.core :refer [html]]
    [hiccup.page :refer [include-js]]
    [hiccup.util :as u]
@@ -155,75 +156,96 @@
                   font-medium" (topic-color topic) "green-100 text-topic")} topic])
 
 (defn user-section [{:keys [user query-params]}
-                    {:keys [id repo owner watched]}]
+                    {:keys [id repo watched] :as plugin}]
   (let [repo-id (str "#repo-" id)]
-    [:div {:class "flex pt-2 sm:pt-0"}
+    [:div {:class "flex pt-2"}
      (watch-button repo-id repo watched)
 
-     (when (or (= (:username user) owner)
-               (= (:role user) "admin"))
-       (if (= (str repo) (:edit query-params))
+     (when (can-edit? user plugin)
+       (if (= repo (:edit query-params))
          (save-button repo-id repo)
          (edit-button repo-id repo)))]))
 
-(defn edit-category-dropdown [{:keys [edit]} {:keys [repo category]} categories]
-  (when (= (str repo) edit)
-    [:div {:class "flex items-center space-x-1 mb-2"}
-     [:div {:class "relative"}
-      [:select {:id "category-edit" :name "category-edit" :title "Edit category"
-                :class "appearance-none bg-transparent border border-brand rounded-lg
+(defn edit-category-dropdown [{:keys [category]} categories]
+  [:div {:class "flex items-center"}
+   [:div {:class "relative w-full"}
+    [:select {:id "category-edit" :name "category-edit" :title "Edit category"
+              :class "appearance-none bg-transparent border border-brand rounded-lg
                       px-3 py-2 pr-8 text-sm text-secondary 
-                      focus-brand focus-brand-border w-auto sm:w-34"}
+                      focus-brand focus-brand-border w-full sm:w-60"}
 
-       [:option {:value "" :selected (nil? category)} "-"]
-       (for [name categories]
-         [:option {:value name :selected (= name category)} name])]
+     [:option {:value "" :selected (nil? category)} "-"]
+     (for [name categories]
+       [:option {:value name :selected (= name category)} name])]
 
-      [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
-       (chevron-down-icon)]]]))
+    [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
+     (chevron-down-icon)]]])
 
-(defn plugin-card [{:keys [user query-params] :as request}
-                   {:keys [categories]}
-                   {:keys [url name description topics created updated
-                           stars stars_week stars_month archived] :as plugin}]
-  [:div {:id (str "repo-" (:id plugin))
-         :class "rounded-lg border border-subtle p-6 hover:shadow-md transition-shadow bg-surface-card"}
+(defn hide-toggle [hidden]
+  [:div {:class "flex items-center text-sm text-nvim-text-muted space-x-2 mb-2"}
+   [:span "Show"]
+   [:label {:for "hidden-toggle" :title "Toggle plugin visiblity"
+            :class (str "relative block h-7 w-14 rounded-full transition-colors bg-nvim-surface border border-brand rounded-xl")}
+    [:input {:id "hidden-toggle" :name "hidden-edit" :type "checkbox" :value "true"
+             :class "peer sr-only"
+             :checked (when hidden "checked")}]
+    [:span {:class "absolute inset-y-0 start-0 ml-1 size-5 bg-nvim-text rounded-full transition-[inset-inline-start] 
+                    top-1/2 -translate-y-1/2 peer-checked:start-6 peer-checked:bg-nvim-text-muted"}]]
+   [:span "Hide"]])
 
-   [:div {:class "flex items-start justify-between"}
-    [:div {:class "flex-1"}
-     (edit-category-dropdown query-params plugin categories)
+(defn plugin-card [{:keys [user] :as request}
+                   {:keys [edit categories]}
+                   {:keys [url repo name description topics created updated
+                           stars stars_week stars_month archived hidden] :as plugin}]
+  (when (or (not hidden) (can-edit? user plugin))
+    (let [edit? (= edit repo)]
+      [:div {:id (str "repo-" (:id plugin))
+             :class "rounded-lg border border-subtle p-6 hover:shadow-md transition-shadow bg-surface-card"}
 
-     [:div {:class "flex items-center gap-2"} ; Flex container to align items horizontally
-      [:a {:href url
-           :class "text-xl font-semibold text-brand-strong mb-2 break-word overflow-hidden"
-           :style "word-break: break-word; overflow-wrap: anywhere; word-wrap: break-word; 
-                   white-space: normal; max-width: 100%; hyphens: auto;"} name]
-      (when archived
-        [:span {:title "Archived"} (archived-icon)])]
+       [:div {:class "flex items-start justify-between"}
+        [:div {:class "flex-1"}
+         [:div {:class "flex sm:flex-row flex-col items-start justify-between"}
+          [:a {:class "flex items-center text-xl font-semibold text-brand-strong mb-2 overflow-hidden
+                   break-words break-all whitespace-normal max-w-full hyphens-auto"
+               :href url} name
+           (when archived
+             [:div {:class "pl-2" :title "Archived"} (archived-icon)])]
+          (when edit?
+            (hide-toggle hidden))]
 
-     [:p {:class "text-muted mb-3"} description]
+         (when edit?
+           [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
+            (edit-category-dropdown plugin categories)])
 
-     (when (seq topics)
-       [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
-        (map plugin-topic (str/split topics #" "))])
+         (if edit?
+           [:textarea {:id "description-edit" :name "description-edit" :type "text"
+                       :class "appearance-none bg-transparent border border-brand rounded-lg
+                      px-3 py-2 mb-2 text-sm text-secondary 
+                      focus-brand focus-brand-border w-full field-sizing-content"} description]
+           [:div {:class "flex text-muted mb-3 max-w-64 sm:max-w-full whitespace-pre-wrap"} description])
 
-     [:div {:class "text-sm text-subtle flex flex-col sm:flex-row sm:space-x-4 mt-4"}
-      (let [created (date->str created)]
-        (when (not= "1970-01-01" created)
-          [:span "Created: " created]))
+         (when (seq topics)
+           [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
+            (map plugin-topic (str/split topics #" "))])
 
-      (let [updated (date->str updated)]
-        (when (not= "1970-01-01" updated)
-          [:span "Last updated: " updated]))
+         [:div {:class "text-sm text-subtle flex flex-col sm:flex-row space-x-4 mt-4"}
+          (let [created (date->str created)]
+            (when (not= "1970-01-01" created)
+              [:span "Created: " created]))
 
-      (when user
-        (user-section request plugin))]]
+          (let [updated (date->str updated)]
+            (when (not= "1970-01-01" updated)
+              [:span "Last updated: " updated]))]]
 
-    (when (pos? stars)
-      [:div {:class "flex flex-col items-end pt-2 pl-2"}
-       (star stars star-icon "space-x-1 py-2 text-sm text-yellow-500" "Total")
-       (star (- stars stars_week) growth-icon-w "space-x-1 py-2 text-sm text-orange-500" "Stars since beginning of the week")
-       (star (- stars stars_month) growth-icon-m "space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])]])
+        [:div {:class "flex flex-col items-end pt-2 pl-2 self-stretch"}
+         (when (pos? stars)
+           [:div {:class "flex-col h-full"}
+            (star stars star-icon "justify-end space-x-1 py-2 text-sm text-yellow-500" "Total")
+            (star (- stars stars_week) growth-icon-w "justify-end space-x-1 py-2 text-sm text-orange-500" "Stars since beginning of the week")
+            (star (- stars stars_month) growth-icon-m "justify-end space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])
+
+         (when user
+           (user-section request plugin))]]])))
 
 (defn category-section [request params n show-group? group-name plugins]
   (if (= "compact" (:view request))
@@ -246,7 +268,7 @@
 (defn plugins-list [request plugins {:keys [group category page total] :as params}]
   (str
    (html
-    (let [url "/repos-page" user (:user request)]
+    (let [url (url-for :repos-page) user (:user request)]
       [:div {:class "space-y-6"}
        [:div {:id "alert-container-repos"}
         (alert (:flash request))]
@@ -264,9 +286,8 @@
        (pagination-btm url page total)]))))
 
 (defn main [request params]
-  (let [url "/repos-page"]
+  (let [url (url-for :repos-page)]
     (base-layout
-     {:head_include (when-not dev? (include-js "/js/repos.js"))}
      request
      [:div {:class "max-w-4xl mx-auto px-4 py-6"}
       (search-input url (:q params))

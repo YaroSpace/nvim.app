@@ -2,6 +2,8 @@
   (:require
    [nvim-app.state :refer [dev? app-config]]
    [nvim-app.views.assets :refer :all]
+   [nvim-app.views.repos-shared :refer [el-with]]
+   [io.pedestal.http.route :refer [url-for]]
    [hiccup.page :refer [html5 include-js include-css]]
    [hiccup2.core :refer [raw]]))
 
@@ -33,7 +35,7 @@
        :class "block px-4 py-2 text-sm text-secondary
                hover-brand hover-brand-text transition-colors"} text])
 
-(defn menu []
+(defn menu [user]
   [:div {:class "relative"}
    [:button {:id "menu-btn"
              :class "text-brand hover-brand-text focus-brand rounded-lg p-1"
@@ -44,13 +46,18 @@
    [:div {:id "menu" :class "hidden absolute top-full left-0 mt-2 w-48
                  bg-surface-card rounded-lg shadow-lg border border-subtle z-50"}
     [:div {:class "py-1"}
-     (menu-item "/" "Home")
-     (menu-item "/news" "News")
-     (menu-item "/about" "About")]]])
+     (menu-item (url-for :home) "Home")
+     (menu-item (url-for :news) "News")
+     (menu-item (url-for :about) "About")
+     (when user
+       (el-with (menu-item (url-for :github-logout) "Logout")
+                {:hx-delete (url-for :github-logout)
+                 :hx-select "#header" :hx-target "#header"}))]]])
 
 (defn user-login [user]
   (if-not user
-    [:a {:title "Login with GitHub" :href "/auth/github"}
+    [:a {:title "Login with GitHub" :href (url-for :github-login)}
+
      (github-icon)]
 
     [:div {:class "w-8 h-8 rounded-full overflow-hidden"}
@@ -58,10 +65,10 @@
       [:img {:src (:avatar_url user)}]]]))
 
 (defn header [{:keys [user]}]
-  [:header {:class "bg-surface-card border-b border-subtle"}
+  [:header {:id "header" :class "bg-surface-card border-b border-subtle"}
    [:div {:class "max-w-4xl mx-auto px-4 py-4"}
     [:div {:class "flex items-center justify-between relative"}
-     (menu)
+     (menu user)
 
      [:div {:class "flex items-center space-x-2 sm:space-x-6"}
       [:img {:alt "Neovim" :class "w-7 h-8" :crossorigin "anonymous"
@@ -97,7 +104,7 @@
   ([{:keys [head_include body_include]} request body]
    (html5
     (head head_include)
-    [:body {:class "dark:scheme-dark min-h-screen bg-surface text-primary"}
+    [:body {:id "body" :class "dark:scheme-dark min-h-screen bg-surface text-primary"}
      (let [mode (:mode request)]
        (if (or (nil? mode) (= "light" mode))
          [:script (raw "document.documentElement.classList.remove('dark');")]

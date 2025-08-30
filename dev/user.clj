@@ -9,7 +9,8 @@
    [puget.printer :as puget]
    [hashp.preload]
    [hashp.config]
-   [user.java :refer :all])
+   [user.java :refer :all]
+   [clj-commons.pretty.repl :as pretty-repl])
 
   (:import
    [ch.qos.logback.classic Level]
@@ -20,12 +21,15 @@
 
 (hashp-setup)
 
+(defn pretty-exceptions []
+  (pretty-repl/install-pretty-exceptions))
+
 (defn patch-rebel-readline []
   (println "Patching rebel-readline to use puget for syntax highlighting")
   (alter-var-root #'main/syntax-highlight-prn
                   (fn [_]
                     (fn [value]
-                      (puget/pprint value)))))
+                      (puget/cprint value)))))
 
 (patch-rebel-readline)
 

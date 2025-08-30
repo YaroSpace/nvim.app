@@ -228,7 +228,7 @@
                                          (db/insert! :categories :values [{:name category}])))]
                 (if repo-id
                   (db/update! :repos
-                              :where [:id repo-id]
+                              :where [:and [:= :id repo-id] [:= :dirty false]]
                               :values {:category_id category-id})
                   (create-from-awesome! (assoc plugin :category-id category-id))))))
        (count)

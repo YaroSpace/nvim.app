@@ -5,9 +5,13 @@
    [nvim-app.config :as config]
    [com.stuartsierra.component.repl :as component-repl]
    [clojure.tools.namespace.repl :as repl]
+   [clj-commons.format.exceptions :as pretty]
    [clojure.tools.logging :as log]))
 
 (repl/disable-reload! (the-ns 'nvim-app.state))
+
+(defn ex-format [e]
+  (pretty/format-exception e))
 
 (component-repl/set-init
  (fn [_]
