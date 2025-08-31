@@ -135,10 +135,9 @@
                      dark:scheme-dark"
              :type "number" :min "1" :max "100" :value (or limit "10")
              :hx-get url :hx-include hx-include :hx-target "#plugins-list"
-             :hx-trigger "submit, input delay:500ms, keyup changed delay:500ms"}]
+             :hx-trigger "submit, input delay:700ms, keyup changed delay:700ms"}]
 
-    [:input {:id "current-page" :href "#" :class "hidden"
-             :hx-get (u/url url {:page page}) :hx-include hx-include :hx-target "#plugins-list"}]
+    [:input {:id "current-page" :class "hidden" :name "page" :value page}]
 
     (pagination-btn-next url page total)]])
 
@@ -153,7 +152,7 @@
 
 (defn plugin-topic [topic]
   [:span {:class (str "inline-flex items-center px-2 py-1 rounded-full text-xs
-                  font-medium" (topic-color topic) "green-100 text-topic")} topic])
+                  font-medium" (topic-color topic) "text-topic")} topic])
 
 (defn user-section [{:keys [user query-params]}
                     {:keys [id repo watched] :as plugin}]
@@ -185,7 +184,7 @@
   [:div {:class "flex items-center text-sm text-nvim-text-muted space-x-2 mb-2"}
    [:span "Show"]
    [:label {:for "hidden-toggle" :title "Toggle plugin visiblity"
-            :class (str "relative block h-7 w-14 rounded-full transition-colors bg-nvim-surface border border-brand rounded-xl")}
+            :class "relative block h-7 w-14 rounded-full transition-colors bg-nvim-surface border border-brand rounded-xl"}
     [:input {:id "hidden-toggle" :name "hidden-edit" :type "checkbox" :value "true"
              :class "peer sr-only"
              :checked (when hidden "checked")}]
@@ -194,7 +193,7 @@
    [:span "Hide"]])
 
 (defn plugin-card [{:keys [user] :as request}
-                   {:keys [edit categories]}
+                   {:keys [edit group category categories]}
                    {:keys [url repo name description topics created updated
                            stars stars_week stars_month archived hidden] :as plugin}]
   (when (or (not hidden) (can-edit? user plugin))
@@ -213,9 +212,17 @@
           (when edit?
             (hide-toggle hidden))]
 
-         (when edit?
+         (if edit?
            [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
-            (edit-category-dropdown plugin categories)])
+            (edit-category-dropdown plugin categories)]
+
+           (when-not (or (= "category" group)
+                         (and (seq category) (not (#{"watched" "archived"} category))))
+
+             [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
+              (let [category (:category plugin)]
+                (el-with (plugin-topic (if (seq category) category  ""))
+                         {:class "min-w-16 px-2 py-2 justify-center"}))]))
 
          (if edit?
            [:textarea {:id "description-edit" :name "description-edit" :type "text"
@@ -270,11 +277,11 @@
    (html
     (let [url (url-for :repos-page) user (:user request)]
       [:div {:class "space-y-6"}
-       [:div {:id "alert-container-repos"}
-        (alert (:flash request))]
+       (alert (:flash request))
        (controls-and-pagination user url params)
 
-       (let [show-group? (some seq [group category])
+       (let [show-group? (or (seq group)
+                             (and (seq category) (not (#{"watched" "archived"} category))))
              grouped (cond
                        (= "updated" group) (group-by-date plugins)
                        show-group? (into (sorted-map) (group-by :category plugins))

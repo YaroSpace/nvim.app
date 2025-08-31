@@ -104,15 +104,16 @@
   ([{:keys [head_include body_include]} request body]
    (html5
     (head head_include)
-    [:body {:id "body" :class "dark:scheme-dark min-h-screen bg-surface text-primary"}
+    [:body {:class "dark:scheme-dark min-h-screen bg-surface text-primary"}
      (let [mode (:mode request)]
        (if (or (nil? mode) (= "light" mode))
          [:script (raw "document.documentElement.classList.remove('dark');")]
          [:script (raw "document.documentElement.classList.add('dark');")]))
 
      (when body_include body_include)
-     [:div {:id "alert-container-main"}
-      (alert (:flash request))]
+     (if-let [flash (:flash request)]
+       (alert flash)
+       [:div {:id "alert-box" :hx-swap-oob "true"}])
      (header request)
      body]
 

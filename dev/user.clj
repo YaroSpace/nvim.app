@@ -1,6 +1,5 @@
 (ns user
   (:require
-   [spy.reader]
    [nrepl.core :as nrepl]
    [clojure.tools.namespace.repl :as repl]
    [clojure.test :as test]
@@ -10,7 +9,9 @@
    [hashp.preload]
    [hashp.config]
    [user.java :refer :all]
-   [clj-commons.pretty.repl :as pretty-repl])
+   [clj-commons.pretty.repl :as pretty-repl]
+   [clj-commons.format.exceptions :as pretty]
+   [clojure.tools.logging :as log])
 
   (:import
    [ch.qos.logback.classic Level]
@@ -19,10 +20,11 @@
 (defn hashp-setup []
   (alter-var-root #'hashp.config/*hashp-output* (constantly *out*)))
 
-(hashp-setup)
-
 (defn pretty-exceptions []
   (pretty-repl/install-pretty-exceptions))
+
+(defn ex-format [e]
+  (pretty/format-exception e))
 
 (defn patch-rebel-readline []
   (println "Patching rebel-readline to use puget for syntax highlighting")
@@ -30,8 +32,6 @@
                   (fn [_]
                     (fn [value]
                       (puget/cprint value)))))
-
-(patch-rebel-readline)
 
 (defn test-namespaces []
   ['component.real-world-clojure-api.info-handler-test])
@@ -103,7 +103,25 @@
       (intern ns-sym 'tap> tap>)
       (intern ns-sym 'p> pn>))))
 
+(def pretty-exceptions-tap-handler
+  (fn [x]
+    (when (instance? Throwable x)
+      (log/fatal (ex-format x)))))
+
+(defn setup-user []
+  (repl/disable-reload! (the-ns 'user))
+
+  (patch-rebel-readline)
+  (hashp-setup)
+  ; (portal-start))
+
+  (remove-tap pretty-exceptions-tap-handler)
+  (add-tap pretty-exceptions-tap-handler))
+
+(setup-user)
+
 (comment
+  (log/fatal (ex-format *e))
   (print-java-members `java.sql.Timestamp :public-only true)
   (discover-test-namespaces)
   (refresh-and-test)

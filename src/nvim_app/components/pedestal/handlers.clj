@@ -61,14 +61,21 @@
   {:name :repo-update
    :enter (fn [{:keys [request] :as context}]
             (let [{:keys [form-params]} request
-                  repo {:category_id (:id (db/select-one :categories
-                                                         :name (:category-edit form-params)))
-                        :description (:description-edit form-params)
-                        :hidden (= "true" (:hidden-edit form-params))
-                        :dirty true}
-                  result (when (every? some? (vals repo))
+                  {:keys [repo category-edit description-edit hidden-edit]} form-params
+
+                  repo-old (db/select-one :repos :repo repo)
+                  repo-new (merge
+                            {:description description-edit
+                             :hidden (= "true" hidden-edit)}
+                            (when-let [category_id (:id (db/select-one
+                                                         :categories :name category-edit))]
+                              {:category_id category_id}))
+
+                  result (when (and
+                                (every? some? (vals repo-new))
+                                (not (every? (fn [[k v]] (= v (get repo-old k))) repo-new)))
                            (db/update! :repos
-                                       :values repo
+                                       :values (assoc repo-new :dirty true)
                                        :where [:= :repo (:repo form-params)]))]
 
               (assoc context :response
@@ -172,14 +179,15 @@
                                             :url html_url
                                             :avatar_url avatar_url}])))]
 
-       (assoc context :response
-              (redirect (url-for :home)
-                        {:session (assoc session :user (:id user))
-                         :flash (if user
-                                  {:success {:title "Login Successful"
-                                             :message (str "Welcome, " (:name user) "!")}}
-                                  {:error {:title "Errors logging in"
-                                           :message (str/join ":" (remove nil? (vals errors)))}})}))))})
+       (assoc context
+              :request (dissoc request :query-params)
+              :response (redirect (url-for :home)
+                                  {:session (assoc session :user (:id user))
+                                   :flash (if user
+                                            {:success {:title "Login Successful"
+                                                       :message (str "Welcome, " (:name user) "!")}}
+                                            {:error {:title "Errors logging in"
+                                                     :message (str/join ":" (remove nil? (vals errors)))}})}))))})
 
 ; TODO: add error handling for auth calls
 

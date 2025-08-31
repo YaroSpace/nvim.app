@@ -168,8 +168,11 @@
 (defn errors-summary [errors]
   (->> errors
        (group-by :type)
-       (map (fn [[type errors]] [type (str/join "\n" (map :message errors))]))
-       (map (fn [[type msgs]] (str type "\n" msgs)))
+       (map (fn [[type errors]]
+              [type (str/join "\n" (map #(str (:path %) ":" (second (re-find #"'(.+)'" (:message %))))
+                                        errors))]))
+       (map (fn [[type msgs]]
+              (str "Type: " type "\n" msgs)))
        (str/join "\n\n")))
 
 (defn log-update-results [result start-time]
@@ -262,12 +265,12 @@
     (a/close! out-ch)))
 
 (defn update-github-data!
-  [& {:keys [where] :or {where [:ilike :url "%github.com%"]}}]
+  [& {:keys [where] :or {where [:and [:not= :hidden true]
+                                [:ilike :url "%github.com%"]]}}]
   (let [queries-ch (a/chan) responses-ch (a/chan) results-ch (a/chan)
         start-time (System/currentTimeMillis)]
     (->>
      (db/select :repos :where where)
-     (map #(select-keys % [:id :url :owner :name :repo]))
      (partition-all 100)
      (map #(->> %
                 (reduce (fn [acc {:keys [id url]}]
@@ -340,8 +343,8 @@
 (defn update-all! []
   (update-github-repos!)
   (update-repos-from-awesome!)
-  (update-github-data!)
-  (delete-duplicate-repos!))
+  (delete-duplicate-repos!)
+  (update-github-data!))
 
 ;; TODO: wrap async ops in try/catch, handle exceptions and close channels, test retries
 
@@ -353,3 +356,4 @@
        (frequencies)
        (sort-by val >)
        (take 40)))
+
