@@ -92,9 +92,9 @@
                                  :message exception-message
                                  :exception exception}]
 
-               (log/error :msg (str "Exception occurred:\n" ex-formatted))
-               (when dev?
-                 (tap> exception))
+               (if dev?
+                 (tap> exception)
+                 (log/error :msg (str "Exception occurred:\n" ex-formatted)))
 
                (assoc context :response
                       (cond-> {:status 500

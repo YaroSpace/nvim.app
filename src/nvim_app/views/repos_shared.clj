@@ -20,15 +20,17 @@
                 ["bg-indigo-100" "config" "dotfiles"]
                 ["bg-lime-100" "python" "rust"]
                 ["bg-blue-100" "neovim" "nvim"]
-                ["bg-purple-100" "vim" "plugin" "terminal"]]]
+                ["bg-purple-100" "vim" "plugin" "terminal"]
+                ["bg-blue-100" "-"]]]
 
     (or (some (fn [[color & topics]]
-                (when (some #(str/includes? topic %) topics)
+                (when (some #(str/includes? (str/lower-case topic) %) topics)
                   (format " %s " color)))
               colors)
         " bg-green-100 ")))
 
 (def hx-include "#search-input, #limit-input, #category, #sort, #group")
+(def hx-include-with-page (str hx-include ", #current-page"))
 
 (defn date->str [date]
   (first (str/split (str date) #" ")))
@@ -52,7 +54,7 @@
               :class "p-2 text-brand hover-brand-text hover-brand rounded-lg transition-colors 
                         focus-brand
                         disabled:opacity-50 disabled:cursor-not-allowed"
-              :hx-get (url-for :repos-page) :hx-target "#plugins-list" :hx-include hx-include}
+              :hx-get (url-for :repos-page) :hx-target "#plugins-list" :hx-include hx-include-with-page}
      (if full? (compact-view-icon) (full-view-icon))]))
 
 (defn mode-toggle [mode]
@@ -62,7 +64,7 @@
               :class "p-2 text-brand hover-brand-text hover-brand rounded-lg transition-colors 
                         focus-brand
                         disabled:opacity-50 disabled:cursor-not-allowed"
-              :hx-get "/" :hx-target "#plugins-list" :hx-include hx-include}
+              :hx-get "/" :hx-target "#plugins-list" :hx-include hx-include-with-page}
      (if light? (dark-mode-icon) (light-mode-icon))]))
 
 (defn watch-button [repo-id repo watched]
@@ -70,22 +72,22 @@
             :name "repo" :value repo
             :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
                         (if watched "text-blue-500" "text-brand"))
-            :hx-put "/user/watch" :hx-target repo-id :hx-include hx-include
+            :hx-put "/user/watch" :hx-target repo-id :hx-include hx-include-with-page
             :hx-select repo-id :hx-swap "outerHTML"}
    (watch-icon)])
 
 (defn save-button [repo-id repo]
   [:button {:id "save-btn" :title "Save" :name "repo" :value repo
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-blue-700"
-            :hx-put "/repo" :hx-include (str "#category-edit, #description-edit, #hidden-toggle, " hx-include)
-            :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"
-            :hx-select-oob "#alert-container-repos"}
+            :hx-put "/repo" :hx-include (str hx-include-with-page ", #category-edit, #description-edit, #hidden-toggle")
+
+            :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
    (save-icon)])
 
 (defn edit-button [repo-id repo]
   [:button {:title "Edit" :name "edit" :value repo
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-brand"
-            :hx-get (url-for :repos-page) :hx-include  hx-include
+            :hx-get (url-for :repos-page) :hx-include hx-include-with-page
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
    (edit-icon)])
 

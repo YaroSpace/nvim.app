@@ -12,15 +12,17 @@
 (defn query!
   ([sql] (query! (get-ds) sql jdbc/execute!))
   ([ds sql cmd]
-   (let [raw (sql/format sql)]
+   (let [raw (volatile! nil)]
      (try
-       (let [result (cmd ds raw)]
+       (vreset! raw (sql/format sql))
+       (let [result (cmd ds @raw)]
          (when (-> app-config :db-spec :logging?)
-           (log/warn "Executed query: " raw)
+           (log/warn "Executed query: " @raw)
            (log/warn "Result: " result))
          result)
        (catch Exception e
-         (let [error (ex-message e)]
+         (let [error (ex-message e)
+               raw (or @raw sql)]
            (log/error "Failed to execute query: " raw error)
            (tap> [raw e])
            (throw e)))))))
@@ -97,7 +99,12 @@
     (migratus/create config name)
     (migratus.core/pending-list config)))
 
+(defn toggle-logging []
+  (alter-var-root #'app-config update-in [:db-spec :logging?] not)
+  (:logging? (:db-spec app-config)))
+
 (comment
+  (toggle-logging)
   (migration-create! "user-table-add-dirty-hide")
   (migration-up!)
   (migration-down!)

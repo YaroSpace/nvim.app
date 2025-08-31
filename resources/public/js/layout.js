@@ -12,28 +12,22 @@ function toggleMenu() {
   document.addEventListener("click", hideMenu);
 }
 
-function hideAlert(id) {
+function hideAlert() {
   setTimeout(() => {
-    const alert = document.getElementById(id).querySelector(".alert-box");
-    if (alert) {
-      alert.classList.add("hidden");
-    }
+    document.getElementById("alert-box").classList.add("hidden");
   }, 3000);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  hideAlert("alert-container-main");
+  hideAlert();
 
   document
     .getElementById("menu-btn")
     .addEventListener("click", (event) => event.stopPropagation());
 });
 
-document.addEventListener("htmx:oobAfterSwap", (event) => {
-  const id = "alert-container-repos";
-  if (event.detail.target.id === id) {
-    hideAlert(id);
-  }
+document.addEventListener("htmx:oobAfterSwap", () => {
+  hideAlert();
 });
 
 document.addEventListener("keydown", (event) => {

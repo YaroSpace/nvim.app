@@ -101,21 +101,22 @@
                           :error "bg-red-50  dark:font-semibold border-red-200 text-red-800"
                           "bg-blue-50 dark:font-semibold border-blue-200 text-blue-800")]
 
-      [:div {:role "alert"
-             :class (str alert-classes " alert-box fixed top-22 left-1/2 transform -translate-x-1/2 z-50 rounded-md border min-w-60 p-2 shadow-sm")}
-       [:div {:class "flex items-start gap-4"}
-        [:svg {:fill "none" :viewBox "0 0 24 24" :stroke-width "1.5" :stroke "currentColor"
-               :class "size-6"}
-         [:path {:stroke-linecap "round" :stroke-linejoin "round"
-                 :d "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"}]]
-        [:div {:class "flex-1"}
-         [:strong {:class "font-medium"} (:title message)]
-         [:p {:class "mt-0.5 text-sm"} (:message message)]]
-        [:button {:class "rounded-full transition-colors hover:bg-gray-50"
-                  :type "button" :aria-label "Dismiss alert"
-                  :onClick "this.closest('div[role=\"alert\"]').classList.add('hidden');"}
-         [:span {:class "sr-only"} "Dismiss popup"]
+      [:div {:id "alert-box" :hx-swap-oob "true"}
+       [:div {:role "alert"
+              :class (str alert-classes " fixed top-22 left-1/2 transform -translate-x-1/2 z-50 rounded-md border min-w-60 p-2 shadow-sm")}
+        [:div {:class "flex items-start gap-4"}
          [:svg {:fill "none" :viewBox "0 0 24 24" :stroke-width "1.5" :stroke "currentColor"
-                :class "size-5"}
+                :class "size-6"}
           [:path {:stroke-linecap "round" :stroke-linejoin "round"
-                  :d "M6 18L18 6M6 6l12 12"}]]]]])))
+                  :d "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"}]]
+         [:div {:class "flex-1"}
+          [:strong {:class "font-medium"} (:title message)]
+          [:p {:class "mt-0.5 text-sm"} (:message message)]]
+         [:button {:class "rounded-full transition-colors hover:bg-gray-50"
+                   :type "button" :aria-label "Dismiss alert"
+                   :onClick "document.getElementById('alert-box').classList.add('hidden');"}
+          [:span {:class "sr-only"} "Dismiss popup"]
+          [:svg {:fill "none" :viewBox "0 0 24 24" :stroke-width "1.5" :stroke "currentColor"
+                 :class "size-5"}
+           [:path {:stroke-linecap "round" :stroke-linejoin "round"
+                   :d "M6 18L18 6M6 6l12 12"}]]]]]])))
