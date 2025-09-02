@@ -8,7 +8,7 @@
   [:div {:class "flex items-center py-2 px-2 border-b-2 text-xs font-semibold text-brand-emphasis bg-surface-card border-subtle"}
 
    [:div {:class "pl-2 w-24 sm:w-48 flex-shrink-0"} "Plugin"]
-   [:div {:class "min-w-16 sm:w-26 flex-shrink-0 text-center"} "Stars"]
+   [:div {:class "min-w-16 sm:w-26 flex-shrink-0"} "Stars"]
    [:div {:class "flex-1 px-1 sm:px-3"} "Description"]])
 
 (defn plugin-topic [topic]
@@ -30,8 +30,7 @@
 
 (defn plugin-card [{:keys [user]} _
                    {:keys [id url repo name description
-                           updated watched archived
-                           stars stars_month] :as plugin}]
+                           watched archived stars stars_month] :as plugin}]
 
   [:div {:id (str "repo-" (:id plugin))
          :class "flex items-center py-1 px-2 border-b border-brand-light hover-brand transition-colors text-sm"

@@ -42,17 +42,38 @@
                          mvxcvi/puget                            {:mvn/version "1.3.4"}
                          djblue/portal                           {:mvn/version "0.59.1"}   ; portal data inspector
                          org.clj-commons/pretty                  {:mvn/version "3.5.0"}
-                         ; mvxcvi/whidbey                          {:mvn/version "2.2.1"}
                          dev.weavejester/hashp                   {:mvn/version "0.4.0"}}
 
             :main-opts ["--eval" "(apply require clojure.main/repl-requires)"
                         "--main" "nrepl.cmdline"
                         "--middleware" "[cider.nrepl/cider-middleware portal.nrepl/wrap-portal]"
-                        ; "[whidbey.plugin/repl-pprint]"
                         "--interactive"
                         "-f" "rebel-readline.main/-main"]
             :jvm-opts ["--enable-native-access=ALL-UNNAMED"]}
 
            :build
            {:deps {io.github.clojure/tools.build {:mvn/version "0.10.9"}}
-            :ns-default build}}}
+            :ns-default build}
+
+            ;; clojure -X:test/cognitect
+           :test
+           {:extra-paths ["test"]
+            :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}
+                          org.clojure/test.check                  {:mvn/version "1.1.1"}
+                          clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
+                          org.testcontainers/postgresql           {:mvn/version "1.21.3"}}
+            :main-opts   ["--main" "cognitect.test-runner"]
+            :exec-fn cognitect.test-runner.api/test}
+
+            ;; clojure -X:test/run
+            ;; - `:fail-fast? false` argument to run all tests
+           :test/run
+           {:extra-paths ["test"]
+            :extra-deps {lambdaisland/kaocha {:mvn/version "1.91.1392"}
+                         org.clojure/test.check                  {:mvn/version "1.1.1"}
+                         clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
+                         org.testcontainers/postgresql           {:mvn/version "1.21.3"}}
+            :main-opts   ["--main" "kaocha.runner"]
+            :exec-fn kaocha.runner/exec-fn
+            :exec-args {:randomize? false
+                        :fail-fast? false}}}}

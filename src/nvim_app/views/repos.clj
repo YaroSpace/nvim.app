@@ -208,7 +208,9 @@
                    break-words break-all whitespace-normal max-w-full hyphens-auto"
                :href url} name
            (when archived
-             [:div {:class "pl-2" :title "Archived"} (archived-icon)])]
+             [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
+           (when hidden
+             [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])]
           (when edit?
             (hide-toggle hidden))]
 
