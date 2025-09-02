@@ -243,7 +243,10 @@
         dom (.getDayOfMonth now)]
     (cond-> repo
       (= "SUNDAY" (.name dow)) (assoc :stars_week stars)
-      (= 1 dom) (assoc :stars_month stars))))
+      (= 2 dom) (assoc :stars_month stars))))
+
+(comment
+  (update-stars (db/select-one :repos :where [:ilike :url "%lensline.nvim%"])))
 
 (defn process-github-data-async  [resp out-ch]
   (a/go

@@ -6,8 +6,7 @@
    [io.pedestal.http.route :as route]
    [com.stuartsierra.component :as component]
 
-   [clojure.string :as string]
-   [spy.reader])
+   [clojure.string :as string])
 
   (:import
    [org.testcontainers.containers PostgreSQLContainer]))

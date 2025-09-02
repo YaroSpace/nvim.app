@@ -1,4 +1,4 @@
-(ns persistance.plugin-test
+(ns persistance.awesome-test
   (:require
    [nvim-app.db.core :as db]
 

@@ -1,6 +1,7 @@
 (ns github-test
   (:require
    [nvim-app.github :refer :all]
+   [clojure.core.async :as a]
    [clojure.test :refer :all]
    [clj-http.client :as http]
    [helpers :as h]))
@@ -38,6 +39,7 @@
                                            :reason-phrase "Service Unavailable"
                                            :body {:errors {:message "Check connection"}}})))]
 
-      (let [result (search-github-async "topic:neovim topic:plugin")]
-        (is (= {} result))))))
+      (a/go
+        (let [result (a/<! (search-github-async "topic:neovim topic:plugin"))]
+          (is (= {} result)))))))
 
