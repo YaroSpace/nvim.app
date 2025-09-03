@@ -21,11 +21,8 @@
            (log/warn "Result: " result))
          result)
        (catch Exception e
-         (let [error (ex-message e)
-               raw (or @raw sql)]
-           (log/error "Failed to execute query: " raw error)
-           (tap> [raw e])
-           (throw e)))))))
+         (let [raw (or @raw sql)]
+           (throw (ex-info "Database query failed" {:query raw} e))))))))
 
 ; TODO: add exception handling
 

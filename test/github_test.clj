@@ -43,3 +43,14 @@
         (let [result (a/<! (search-github-async "topic:neovim topic:plugin"))]
           (is (= {} result)))))))
 
+(comment
+  process-github-response-async
+  search-github-async
+  process-github-response-async
+  update-repos-from-awesome!
+  update-github-data!
+  update-github-repos!
+  delete-duplicate-repos!
+  retry-on-errors-async
+  should-retry-after?
+  process-github-search-response)
