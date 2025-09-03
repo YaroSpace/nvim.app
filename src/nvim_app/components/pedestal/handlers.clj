@@ -99,7 +99,7 @@
 
            matched (repo/search-repos q category sort offset limit user)
            categories (into (sorted-set) (map :name (db/select :categories)))
-           total  (int (Math/ceil (/ (or (:total (first matched)) 0) limit)))]
+           total  (int (Math/ceil (/ (or (:total (first matched)) 1) limit)))]
 
        (assoc context :response
               {:status  200
@@ -174,7 +174,7 @@
                       (db/insert! :users
                                   :values [{:github_id id
                                             :username login
-                                            :email email
+                                            :email (or email "")
                                             :name name
                                             :url html_url
                                             :avatar_url avatar_url}])))]

@@ -81,6 +81,16 @@
                 (with-bindings {#'route/*url-for* url-for-fn}
                   (h/not-found context)))))})
 
+(defn ex-format [e]
+  (let [ex (Throwable->map e)]
+    {:cause (:cause ex)
+     :data nil
+     :via (map #(-> %
+                    (select-keys [:message :at])
+                    (assoc :data (dissoc (:data %) :trace)))
+               (:via ex))
+     :trace nil}))
+
 (def exception-interceptor
   (interceptor/interceptor
    {:name ::exception

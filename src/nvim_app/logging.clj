@@ -20,7 +20,6 @@
 (defn send-telegram-request
   [message & {:keys [verbose] :or {verbose false}}]
 
-  (print "Sending telegram message: " message "\n")
   (let [token (-> app-config :telegram :bot-token)
         chat-id (-> app-config :telegram :chat-id)
         url (str "https://api.telegram.org/bot" token "/sendMessage")
