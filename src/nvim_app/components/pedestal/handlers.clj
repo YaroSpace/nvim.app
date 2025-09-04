@@ -99,7 +99,7 @@
 
            matched (repo/search-repos q category sort offset limit user)
            categories (into (sorted-set) (map :name (db/select :categories)))
-           total  (int (Math/ceil (/ (or (:total (first matched)) 1) limit)))]
+           total  (int (Math/ceil (/ (:total (first matched) 1) limit)))]
 
        (assoc context :response
               {:status  200
