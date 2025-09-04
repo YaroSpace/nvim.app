@@ -1,7 +1,7 @@
 (ns nvim-app.logging
   (:require
    [nvim-app.state :refer [app-config]]
-   [nvim-app.utils :refer [fetch-request]]
+   [nvim-app.utils :refer [ex-format fetch-request]]
    [clojure.tools.logging :as log]
    [clojure.string :as str]
    [clojure.tools.logging.impl :as impl]
@@ -47,7 +47,7 @@
               (let [resp (send-telegram-request msg :verbose true)]
                 (if (:errors resp) (inc errors-count) 0))
               (catch Exception e
-                (log/error "No-notify" "Telegram notification failed:" e)
+                (log/error "No-notify" "Telegram notification failed:\n" (ex-format e))
                 (inc errors-count)))]
         (recur next-errors-count)))))
 

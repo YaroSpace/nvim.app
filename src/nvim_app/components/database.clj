@@ -47,15 +47,14 @@
               ds-with-opts (jdbc/with-options ds {:builder-fn rs/as-unqualified-maps})]
 
           (db/run-migrations! {:datasource ds})
-          (db/query-one! ds [:raw "SET pg_trgm.similarity_threshold = 0.18"])
+          (db/query-one! ds [:raw "SET pg_trgm.similarity_threshold = 0.16"])
           (assoc this
                  :raw-ds ds
                  :datasource (if (:logging? config)
                                (jdbc/with-logging ds-with-opts db-logger db-logger)
                                ds-with-opts)))
         (catch Exception e
-          (log/error "Failed to start database component" (ex-message e))
-          (throw e)))))
+          (throw (ex-info "Failed to start database component" e))))))
 
   (stop [this]
     (log/info "Stopping DatabaseComponent")

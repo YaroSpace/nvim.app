@@ -1,10 +1,11 @@
 (ns nvim-app.db.core
   (:require
-   [nvim-app.state :refer [app-system-atom app-config]]
+   [nvim-app.state :refer [app-config app-system-atom]]
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
    [migratus.core :as migratus]
-   [clojure.tools.logging :as log]))
+   [clojure.tools.logging :as log]
+   [nvim-app.utils :refer [ex-format]]))
 
 (defn get-ds []
   (:database-component @app-system-atom))
@@ -68,8 +69,7 @@
     (try
       (migratus/migrate config)
       (catch Exception e
-        (let [error (ex-message e)]
-          (log/error "Failed to run database migrations: " error))))))
+        (throw (ex-info "Failed to run database migrations" e))))))
 
 (defn get-migration-config []
   {:store :database

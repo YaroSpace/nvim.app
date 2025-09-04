@@ -107,11 +107,12 @@
        :order-by (concat
                   (order-by sort)
                   [[[:greatest
-                     [:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]]
-                     [:ts_rank :topics_tsv [:plainto_tsquery [:inline "english"] q]]
+                     [:similarity :repo q]
                      [:similarity :description q]
                      [:similarity :topics q]
-                     [:similarity :repo q]
-                     [:similarity :categories.name q]] :desc]])
+                     [:similarity :categories.name q]]
+                     ; [:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]]
+                     ; [:ts_rank :topics_tsv [:plainto_tsquery [:inline "english"] q]]]
+                    :desc]])
        :limit limit
        :offset offset}))))

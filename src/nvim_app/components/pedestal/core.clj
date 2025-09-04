@@ -4,6 +4,7 @@
    [nvim-app.db.core :as db]
    [nvim-app.components.pedestal.routes :as r]
    [nvim-app.components.pedestal.handlers :as h]
+   [nvim-app.utils :refer [ex-format]]
    [com.stuartsierra.component :as component]
    [io.pedestal.http :as http]
    [io.pedestal.http.content-negotiation :as content-negotiation]
@@ -81,30 +82,14 @@
                 (with-bindings {#'route/*url-for* url-for-fn}
                   (h/not-found context)))))})
 
-(defn ex-format [e]
-  (let [ex (Throwable->map e)]
-    {:cause (:cause ex)
-     :data nil
-     :via (map #(-> %
-                    (select-keys [:message :at])
-                    (assoc :data (dissoc (:data %) :trace)))
-               (:via ex))
-     :trace nil}))
-
 (def exception-interceptor
   (interceptor/interceptor
    {:name ::exception
     :error (fn [context exception]
-             (let [exception-type (-> exception class .getName)
-                   exception-message (.getMessage exception)
-                   ex-formatted {:error true
-                                 :exception-type exception-type
-                                 :message exception-message
-                                 :exception exception}]
-
+             (let [ex-formatted (ex-format exception)]
                (if dev?
                  (tap> exception)
-                 (log/error :msg (str "Exception occurred:\n" ex-formatted)))
+                 (log/error ex-formatted))
 
                (assoc context :response
                       (cond-> {:status 500

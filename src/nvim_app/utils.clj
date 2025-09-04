@@ -1,11 +1,30 @@
 (ns nvim-app.utils
   (:require
+   [hiccup2.core :refer [raw]]
+   [markdown.core :as md]
    [clj-http.client :as http]
    [cheshire.core :as json]
    [clojure.tools.logging :as log]
    [clojure.string :as str]
-   [markdown.core :as md]
-   [hiccup2.core :refer [raw]]))
+   [clojure.pprint :as pprint]))
+
+(defn strip-trace [m]
+  (if-not (map? m)
+    m
+    (update-vals (dissoc m :trace)
+                 #(cond
+                    (instance? Throwable %) (strip-trace (Throwable->map %))
+                    (map? %) (strip-trace %)
+                    (vector? %) (mapv strip-trace %)
+                    :else %))))
+
+(defn ex-format [ex]
+  (with-out-str
+    (pprint/pprint
+     (-> ex
+         (Throwable->map)
+         (strip-trace)
+         (assoc :trace (.getStackTrace ex))))))
 
 (defn json-parse
   ([data]

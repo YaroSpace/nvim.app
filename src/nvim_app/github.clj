@@ -4,7 +4,7 @@
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
    [nvim-app.awesome :as awesome]
-   [nvim-app.utils :refer [fetch-request]]
+   [nvim-app.utils :refer [ex-format fetch-request]]
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.core.async :as a]
@@ -169,7 +169,7 @@
   (->> errors
        (group-by :type)
        (map (fn [[type errors]]
-              [type (str/join "\n" (map #(str (:path %) ":" (second (re-find #"'(.+)'" (:message %))))
+              [type (str/join "\n" (map #(str (:path %) ":" (second (re-find #"'(.+)'" (:message % ""))))
                                         errors))]))
        (map (fn [[type msgs]]
               (str "Type: " type "\n" msgs)))
@@ -254,8 +254,9 @@
           (-> repo
               (update-stars)
               (repo/upsert-repo!))
+          ; TODO: move try/catch to calling fn
           (catch Exception e
-            (log/error (ex-message e)))))
+            (log/error (ex-format e)))))
 
       (log/info "Github: Updated data for" (count results) "repos")
       (when errors

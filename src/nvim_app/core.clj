@@ -8,7 +8,8 @@
    [nvim-app.components.sched :as sched-component]
    [nvim-app.components.repl :as repl-component]
    [com.stuartsierra.component :as component]
-   [clojure.tools.logging :as log]))
+   [clojure.tools.logging :as log]
+   [nvim-app.utils :refer [ex-format]]))
 
 (defn nvim-database-system [config]
   (component/system-map
@@ -39,15 +40,12 @@
        (new Thread #(component/stop-system system))))
 
     (catch Exception e
-      (log/error "Failed to start system component" (ex-message e))
-      (log/error (:via (Throwable->map e)))
+      (log/error "Failed to start system component\n" (ex-format e))
       (component/stop (:system (ex-data e))))))
 
 (comment
   (require 'nvim-app.state)
   (-main)
-  ; (require '[portal.api :as inspect])
-  ; (add-tap #'inspect/submit)
   (component/stop-system @nvim-app.state/app-system-atom)
   "
 ```http

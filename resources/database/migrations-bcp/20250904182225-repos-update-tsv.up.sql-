@@ -1,0 +1,40 @@
+CREATE TEXT SEARCH CONFIGURATION english_custom (COPY = pg_catalog.english);
+--;;
+
+-- Modify the mapping to treat `.` and `-` as part of tokens
+ALTER TEXT SEARCH CONFIGURATION english_custom
+ALTER MAPPING FOR asciiword, asciihword, hword_asciipart
+WITH simple;
+--;;
+
+DROP INDEX IF EXISTS repos_tsv_idx;
+--;;
+
+DROP INDEX IF EXISTS repos_topics_tsv_idx;
+--;;
+
+ALTER TABLE repos 
+DROP COLUMN IF EXISTS tsv;
+--;;
+
+ALTER TABLE repos 
+DROP COLUMN IF EXISTS topics_tsv;
+--;;
+
+ALTER TABLE repos
+ADD COLUMN tsv tsvector GENERATED ALWAYS AS (
+  setweight(to_tsvector('english_custom', coalesce(description, '')), 'A') ||
+  setweight(to_tsvector('english_custom', coalesce(repo, '')), 'B')
+) STORED;
+--;;
+
+CREATE INDEX repos_tsv_idx ON repos USING GIN(tsv);
+--;;
+
+ALTER TABLE repos
+ADD COLUMN topics_tsv tsvector GENERATED ALWAYS AS (
+  to_tsvector('english_custom', topics)
+) STORED;
+--;;
+
+CREATE INDEX repos_topics_tsv_idx ON repos USING GIN(topics_tsv);
