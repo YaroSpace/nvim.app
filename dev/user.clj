@@ -2,7 +2,6 @@
   (:require
    [nrepl.core :as nrepl]
    [clojure.tools.namespace.repl :as repl]
-   [clojure.test :as test]
    [clojure.string :as str]
    [rebel-readline.clojure.main :as main]
    [puget.printer :as puget]
@@ -11,6 +10,8 @@
    [user.java :refer :all]
    [clj-commons.pretty.repl :as pretty-repl]
    [clj-commons.format.exceptions :as pretty]
+   [clojure.test :as test]
+   [kaocha.repl :as k]
    [clojure.tools.logging :as log])
 
   (:import
@@ -39,11 +40,13 @@
 (defn discover-test-namespaces []
   (->> (all-ns)
        (map ns-name)
-       (filter #(re-find #"-test$" (str %)))
+       (filter #(str/includes? % "-test"))
+       (filter #(str/includes? % "nvim-app"))
        (map symbol)))
 
 (defn run-tests []
-  (apply test/run-tests (discover-test-namespaces)))
+  ; (apply test/run-tests (discover-test-namespaces))
+  (k/run :unit))
 
 (defn refresh []
   (repl/refresh))

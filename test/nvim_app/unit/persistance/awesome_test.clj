@@ -3,7 +3,7 @@
    [nvim-app.db.core :as db]
 
    [clojure.test :refer :all]
-   [helpers :as h]))
+   [nvim-app.helpers :as h]))
 
 (def test-categories
   [{:name "Editing"}

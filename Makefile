@@ -55,3 +55,6 @@ remote:
 
 	@clojure -T:nrebel :port $(repl_port)
 	@pkill -f "$(ssh_command)"
+
+test_watch:
+	clojure -X:test/run:test/watch

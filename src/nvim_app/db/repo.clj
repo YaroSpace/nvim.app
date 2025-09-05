@@ -110,9 +110,9 @@
                      [:similarity :repo q]
                      [:similarity :description q]
                      [:similarity :topics q]
-                     [:similarity :categories.name q]]
-                     ; [:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]]
-                     ; [:ts_rank :topics_tsv [:plainto_tsquery [:inline "english"] q]]]
+                     [:similarity :categories.name q]
+                     [:ts_rank :tsv [:plainto_tsquery [:inline "english"] q]]
+                     [:ts_rank :topics_tsv [:plainto_tsquery [:inline "english"] q]]]
                     :desc]])
        :limit limit
        :offset offset}))))
