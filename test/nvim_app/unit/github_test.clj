@@ -1,10 +1,10 @@
-(ns github-test
+(ns nvim-app.unit.github-test
   (:require
    [nvim-app.github :refer :all]
    [clojure.core.async :as a]
    [clojure.test :refer :all]
-   [clj-http.client :as http]
-   [helpers :as h]))
+   [clj-http.fake :as fake :refer [with-fake-routes]]
+   [nvim-app.helpers :as h]))
 
 (def response-error-syntax
   {:results nil,
@@ -17,6 +17,7 @@
      :locations [{:line 3, :column 5}],
      :message
      "Field 'sedges' doesn't exist on type 'SearchResultItemConnection'"}
+
     {:path ["query" "search" "sedges"],
      :extensions
      {:code "undefinedField",
@@ -30,18 +31,18 @@
 
 (deftest github-test
   (testing "Testing GitHub API integration"
-    ; (with-redefs [http/request 
-    ;                 (fn [_] {:status 200 :body {:errors {:message "Service Unavailable"}}})])
+    (with-fake-routes
+      {#".*"
+       (fn [_] (throw (ex-info "Service Unavailable"
+                               {:status 503
+                                :reason-phrase "Service Unavailable"
+                                :body {:errors {:message "Check connection"}}})))}
 
-    (with-redefs [http/request
-                  (fn [_] (throw (ex-info "Service Unavailable"
-                                          {:status 503
-                                           :reason-phrase "Service Unavailable"
-                                           :body {:errors {:message "Check connection"}}})))]
-
-      (a/go
-        (let [result (a/<! (search-github-async "topic:neovim topic:plugin"))]
-          (is (= {} result)))))))
+      (let [result (a/<!! (search-github-async "topic:neovim topic:plugin"))]
+        (is (= {:results "ad"
+                :errors {:message "Check connection", :reason "Service Unavailable"},
+                :page-info nil,
+                :rate-limit nil} result))))))
 
 (comment
   process-github-response-async

@@ -1,4 +1,4 @@
-(ns helpers
+(ns nvim-app.helpers
   (:require
    [nvim-app.core :refer [nvim-app-system nvim-database-system]]
 
