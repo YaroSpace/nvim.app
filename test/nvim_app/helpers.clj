@@ -1,21 +1,21 @@
 (ns nvim-app.helpers
   (:require
    [nvim-app.core :refer [nvim-app-system nvim-database-system]]
-
    [nvim-app.components.pedestal.routes :as r]
+   [nvim-app.integration.fixtures :as fixtures]
+   [nvim-app.db.core :as db]
    [io.pedestal.http.route :as route]
    [com.stuartsierra.component :as component]
-
-   [clojure.string :as string])
+   [clojure.string :as str])
 
   (:import
    [org.testcontainers.containers PostgreSQLContainer]))
 
 (defn sut->url
   [sut path]
-  (string/join ["http://localhost:"
-                (-> sut :pedestal-component :config :server :port)
-                path]))
+  (str/join ["http://localhost:"
+             (-> sut :app :pedestal-component :config :port)
+             path]))
 
 (def get-url-for
   (route/url-for-routes r/routes))
@@ -90,3 +90,12 @@
          ((:enter handler))
          :response
          :body))))
+
+(defn setup-fixtures [sut]
+  (let [ds (:database-component sut)]
+    (db/query-one! ds
+                   {:insert-into :categories
+                    :values fixtures/categories})
+    (db/query-one! ds
+                   {:insert-into :repos
+                    :values fixtures/plugins})))

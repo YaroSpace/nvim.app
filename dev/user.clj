@@ -42,11 +42,13 @@
        (map ns-name)
        (filter #(str/includes? % "-test"))
        (filter #(str/includes? % "nvim-app"))
+       (filter #(str/includes? % "integration"))
        (map symbol)))
 
 (defn run-tests []
-  ; (apply test/run-tests (discover-test-namespaces))
-  (k/run :unit))
+  (apply test/run-tests (discover-test-namespaces)))
+  ; (k/run :unit)
+  ; (k/run :integration))
 
 (defn refresh []
   (repl/refresh))

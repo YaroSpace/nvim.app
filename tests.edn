@@ -1,6 +1,9 @@
 #kaocha/v1
  {:tests [{:id          :unit
            :test-paths  ["test/nvim_app/unit"]
+           :ns-patterns [".*"]}
+          {:id          :integration
+           :test-paths  ["test/nvim_app/integration"]
            :ns-patterns [".*"]}]}
           ;; :reporter kaocha.report.progress/report
           ;; :plugins [:kaocha.plugin/profiling :kaocha.plugin/notifier]

@@ -26,6 +26,12 @@
          (strip-trace)
          (assoc :trace (.getStackTrace ex))))))
 
+(defn pcall [fn]
+  (try
+    [true (fn)]
+    (catch Exception e
+      [false (ex-format e)])))
+
 (defn json-parse
   ([data]
    (json-parse data {:verbose false}))

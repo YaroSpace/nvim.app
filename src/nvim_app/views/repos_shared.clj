@@ -77,15 +77,14 @@
    (watch-icon)])
 
 (defn save-button [repo-id repo]
-  [:button {:id "save-btn" :title "Save" :name "repo" :value repo
+  [:button {:id "save-btn" :title "Save" :name "repo" :value repo :type "button"
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-blue-700"
-            :hx-put "/repo" :hx-include (str hx-include-with-page ", #category-edit, #description-edit, #hidden-toggle")
-
+            :hx-put "/repo" :hx-include (str hx-include-with-page ", previous #category-edit, previous #description-edit, previous #hidden-toggle")
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
    (save-icon)])
 
 (defn edit-button [repo-id repo]
-  [:button {:title "Edit" :name "edit" :value repo
+  [:button {:title "Edit" :name "edit" :value repo :type "button"
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-brand"
             :hx-get (url-for :repos-page) :hx-include hx-include-with-page
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}

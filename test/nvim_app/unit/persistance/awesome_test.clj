@@ -1,7 +1,6 @@
-(ns persistance.awesome-test
+(ns nvim-app.unit.persistance.awesome-test
   (:require
    [nvim-app.db.core :as db]
-
    [clojure.test :refer :all]
    [nvim-app.helpers :as h]))
 
