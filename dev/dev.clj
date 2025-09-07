@@ -5,8 +5,7 @@
    [nvim-app.config :as config]
    [com.stuartsierra.component.repl :as component-repl]
    [clojure.tools.namespace.repl :as repl]
-   [clojure.tools.logging :as log]
-   [nvim-app.utils :refer [ex-format]]))
+   [clojure.tools.logging :as log]))
 
 (repl/disable-reload! (the-ns 'nvim-app.state))
 
@@ -24,7 +23,7 @@
   (try
     (component-repl/start)
     (catch Exception e
-      (log/error "Failed to start system component" (ex-format e))
+      (log/error "Failed to start system component")
       (tap> e)
       (component-repl/stop))))
 

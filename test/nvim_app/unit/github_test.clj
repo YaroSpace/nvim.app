@@ -39,7 +39,7 @@
                                 :body {:errors {:message "Check connection"}}})))}
 
       (let [result (a/<!! (search-github-async "topic:neovim topic:plugin"))]
-        (is (= {:results "ad"
+        (is (= {:results nil
                 :errors {:message "Check connection", :reason "Service Unavailable"},
                 :page-info nil,
                 :rate-limit nil} result))))))

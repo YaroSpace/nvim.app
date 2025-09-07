@@ -180,81 +180,82 @@
     [:div {:class "absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"}
      (chevron-down-icon)]]])
 
-(defn hide-toggle [hidden]
-  [:div {:class "flex items-center text-sm text-nvim-text-muted space-x-2 mb-2"}
-   [:span "Show"]
-   [:label {:for "hidden-toggle" :title "Toggle plugin visiblity"
-            :class "relative block h-7 w-14 rounded-full transition-colors bg-nvim-surface border border-brand rounded-xl"}
-    [:input {:id "hidden-toggle" :name "hidden-edit" :type "checkbox" :value "true"
-             :class "peer sr-only"
-             :checked (when hidden "checked")}]
-    [:span {:class "absolute inset-y-0 start-0 ml-1 size-5 bg-nvim-text rounded-full transition-[inset-inline-start] 
+(defn hide-toggle [id hidden]
+  (let [toggle-id (str "hidden-toggle-" id)]
+    [:div {:class "flex items-center text-sm text-nvim-text-muted space-x-2 mb-2"}
+     [:span "Show"]
+     [:label {:for toggle-id :title "Toggle plugin visiblity"
+              :class "relative block h-7 w-14 rounded-full transition-colors bg-nvim-surface border border-brand rounded-xl"}
+      [:input {:id toggle-id :name "hidden-edit" :type "checkbox" :value "true"
+               :class "peer sr-only"
+               :checked (when hidden "checked")}]
+      [:span {:class "absolute inset-y-0 start-0 ml-1 size-5 bg-nvim-text rounded-full transition-[inset-inline-start] 
                     top-1/2 -translate-y-1/2 peer-checked:start-6 peer-checked:bg-nvim-text-muted"}]]
-   [:span "Hide"]])
+     [:span "Hide"]]))
 
 (defn plugin-card [{:keys [user] :as request}
                    {:keys [edit group category categories]}
-                   {:keys [url repo name description topics created updated
+                   {:keys [id url repo name description topics created updated
                            stars stars_week stars_month archived hidden] :as plugin}]
   (when (or (not hidden) (can-edit? user plugin))
     (let [edit? (= edit repo)]
-      [:div {:id (str "repo-" (:id plugin))
+      [:div {:id (str "repo-" id)
              :class "rounded-lg border border-subtle p-6 hover:shadow-md transition-shadow bg-surface-card"}
-
-       [:div {:class "flex items-start justify-between"}
-        [:div {:class "flex-1"}
-         [:div {:class "flex sm:flex-row flex-col items-start justify-between"}
-          [:a {:class "flex items-center text-xl font-semibold text-brand-strong mb-2 overflow-hidden
+       [:form
+        [:div {:class "flex items-start justify-between"}
+         [:div {:class "flex-1"}
+          [:div {:class "flex sm:flex-row flex-col items-start justify-between"}
+           [:a {:class "flex items-center text-xl font-semibold text-brand-strong mb-2 overflow-hidden
                    break-words break-all whitespace-normal max-w-full hyphens-auto"
-               :href url} name
-           (when archived
-             [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
-           (when hidden
-             [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])]
-          (when edit?
-            (hide-toggle hidden))]
+                :href url} name
+            (when archived
+              [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
+            (when hidden
+              [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])]
+           (when edit?
+             (hide-toggle id hidden))]
 
-         (if edit?
-           [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
-            (edit-category-dropdown plugin categories)]
+          (if edit?
+            [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
+             (edit-category-dropdown plugin categories)]
 
-           (when-not (or (= "category" group)
-                         (and (seq category) (not (#{"watched" "archived"} category))))
+            (when-not (or (= "category" group)
+                          (and (seq category) (not (#{"watched" "archived"} category))))
 
-             [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
-              (let [category (:category plugin)]
-                (el-with (plugin-topic (if (seq category) category  ""))
-                         {:class "min-w-16 px-2 py-2 justify-center"}))]))
+              [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
+               (let [category (:category plugin)]
+                 (el-with (plugin-topic (if (seq category) category  ""))
+                          {:class "min-w-16 px-2 py-2 justify-center"}))]))
 
-         (if edit?
-           [:textarea {:id "description-edit" :name "description-edit" :type "text"
-                       :class "appearance-none bg-transparent border border-brand rounded-lg
+          (if edit?
+            [:textarea {:id "description-edit" :name "description-edit" :type "text"
+                        :class "appearance-none bg-transparent border border-brand rounded-lg
                       px-3 py-2 mb-2 text-sm text-secondary 
                       focus-brand focus-brand-border w-full field-sizing-content"} description]
-           [:div {:class "flex text-muted mb-3 max-w-64 sm:max-w-full whitespace-pre-wrap"} description])
+            [:div {:class "flex text-muted mb-3 max-w-64 sm:max-w-full whitespace-pre-wrap"} description])
 
-         (when (seq topics)
-           [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
-            (map plugin-topic (str/split topics #" "))])
+          (when (seq topics)
+            [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
+             (map plugin-topic (str/split topics #" "))])
 
-         [:div {:class "text-sm text-subtle flex flex-col sm:flex-row space-x-4 mt-4"}
-          (let [created (date->str created)]
-            (when (not= "1970-01-01" created)
-              [:span "Created: " created]))
+          [:div {:class "text-sm text-subtle flex flex-col sm:flex-row space-x-4 mt-4"}
+           (let [created (date->str created)]
+             (when (not= "1970-01-01" created)
+               [:span "Created: " created]))
 
-          (let [updated (date->str updated)]
-            (when (not= "1970-01-01" updated)
-              [:span "Last updated: " updated]))]]
+           (let [updated (date->str updated)]
+             (when (not= "1970-01-01" updated)
+               [:span "Last updated: " updated]))]]
 
-        [:div {:class "flex flex-col items-end pt-2 pl-2 self-stretch"}
-         (when (pos? stars)
-           [:div {:class "flex-col h-full"}
-            (star stars star-icon "justify-end space-x-1 py-2 text-sm text-yellow-500" "Total")
-            (star (- stars stars_week) growth-icon-w "justify-end space-x-1 py-2 text-sm text-orange-500" "Stars since beginning of the week")
-            (star (- stars stars_month) growth-icon-m "justify-end space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])
+         [:div {:class "flex flex-col items-end pt-2 pl-2 self-stretch"}
+          (when (pos? stars)
+            [:div {:class "flex-col h-full"}
+             (star stars star-icon "justify-end space-x-1 py-2 text-sm text-yellow-500" "Total")
+             (star (- stars stars_week) growth-icon-w "justify-end space-x-1 py-2 text-sm text-orange-500" "Stars since beginning of the week")
+             (star (- stars stars_month) growth-icon-m "justify-end space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])
 
-         (when user
-           (user-section request plugin))]]])))
+          (when user
+            (user-section request plugin))]]]])))
 
 (defn category-section [request params n show-group? group-name plugins]
   (if (= "compact" (:view request))

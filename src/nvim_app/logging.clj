@@ -48,6 +48,7 @@
                 (if (:errors resp) (inc errors-count) 0))
               (catch Exception e
                 (log/error "No-notify" "Telegram notification failed:\n" (ex-format e))
+                (a/<! (a/timeout (rand-int 5000)))
                 (inc errors-count)))]
         (recur next-errors-count)))))
 

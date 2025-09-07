@@ -4,8 +4,7 @@
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
    [migratus.core :as migratus]
-   [clojure.tools.logging :as log]
-   [nvim-app.utils :refer [ex-format]]))
+   [clojure.tools.logging :as log]))
 
 (defn get-ds []
   (:database-component @app-system-atom))
@@ -108,5 +107,6 @@
   (do
     (reset!!)
     (migration-up!))
-  (select :users)
-  (update! :users :values {:role "admin"} :where [:id 1]))
+  (map #(dissoc % :tsv :topics_tsv) (take 10 (select :repos)))
+  (update! :users :values {:role "admin"} :where [:id 1])
+  (select :categories))
