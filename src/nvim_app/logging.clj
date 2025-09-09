@@ -85,7 +85,7 @@
 
 (comment
   (wrap-logging-with-notifications)
-  (log/warn  :gnore "test" "test")
+  (send-telegram-request "Test")
   (log/error "Test error message" {:a 1})
   (log/error "No-notify" "Test error message" {:a 1})
   (log/errorf "Test error message %s" {:a 1}))

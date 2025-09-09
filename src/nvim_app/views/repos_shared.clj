@@ -69,7 +69,7 @@
 
 (defn watch-button [repo-id repo watched]
   [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
-            :name "repo" :value repo
+            :name "repo" :value repo :type "button"
             :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
                         (if watched "text-blue-500" "text-brand"))
             :hx-put "/user/watch" :hx-target repo-id :hx-include hx-include-with-page
@@ -79,7 +79,7 @@
 (defn save-button [repo-id repo]
   [:button {:id "save-btn" :title "Save" :name "repo" :value repo :type "button"
             :class "flex items-center pl-2 space-x-1 cursor-pointer text-blue-700"
-            :hx-put "/repo" :hx-include (str hx-include-with-page ", previous #category-edit, previous #description-edit, previous #hidden-toggle")
+            :hx-put "/repo" :hx-include (str hx-include-with-page ", closest form")
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
    (save-icon)])
 

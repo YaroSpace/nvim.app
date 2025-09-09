@@ -1,3 +1,4 @@
+app/*
 dev/.secrets.edn
 
 target/*

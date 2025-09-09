@@ -176,11 +176,12 @@
        (str/join "\n\n")))
 
 (defn log-update-results [result start-time]
-  (let [{:keys [results errors rate-limit]} result]
+  (let [{:keys [results errors rate-limit]} result
+        errors (remove empty? errors)]
     (log/info "Github: Updated TOTAL:" (count results) "repositories in"
               (/ (- (System/currentTimeMillis) start-time) 1000.0) "s")
 
-    (when errors
+    (when (seq errors)
       (log/error "Github: Errors TOTAL during update" (count errors))
       (log/error "Github: Errors Summary\n" (errors-summary errors)))
 

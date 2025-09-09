@@ -7,13 +7,15 @@
  :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
            :username #or [#env DATABASE_USER "nvim"]
            :password #or [#env DATABASE_PASSWORD "nvim"]
+           :connection-init-sql "SET pg_trgm.similarity_threshold = 0.16"
            :logging? #profile {:default false :dev false}}
 
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
            :enable #or [#env NVIM_APP_REPL_ENABLE false]}
 
  :sched    {:enable #profile {:default true :dev false}
-            :update-repos-interval-hr 4}
+            :update-repos-interval-hr 4
+            :update-previews-interval-hr 120}
 
  :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]
            :client-id #or [#env GITHUB_CLIENT_ID #ref [:secrets :github :client-id]]
@@ -24,9 +26,13 @@
            :user-url "https://api.github.com/user"
            :scope "user:email"}
 
+ :chrome  {:host #profile {:default "chromedriver" :dev "localhost"}
+           :port #profile {:default 9515}}
+
  :app     {:env #profile {:default :prod :dev :dev}
            :update-on-start? #profile {:default false :dev false}
-           :features {:auth #profile {:default true :dev true}}}
+           :features {:auth #profile {:default true :dev true}
+                      :preview #profile {:default true :dev true}}}
 
  :telegram {:bot-token #or [#env TELEGRAM_BOT_TOKEN #ref [:secrets :telegram :bot-token]]
             :chat-id #or [#env TELEGRAM_CHAT_ID #ref [:secrets :telegram :chat-id]]

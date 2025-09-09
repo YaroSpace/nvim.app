@@ -1,4 +1,4 @@
-This catalog of Neovim plugins and Neovim related projects is my way to express gratitude and appreciation to the Neovim community.
+[This catalog](https://nvim.app) of Neovim plugins and Neovim related projects is my way to express gratitude and appreciation to the Neovim community.
 
 The data is collected from [Awesome Neovim](https://github.com/rockerBOO/awesome-neovim) and searched in **GitHub** for topics `neovim, plugin; nvim, plugin; neovim-plugin; nvim-plugin`, so some users' configs may also end up in the catalog.
 
@@ -18,6 +18,6 @@ https://nvim.app/repos-page?
 
 Request headers should contain: **Accept: application/json**
 
-## TODO
+#
 
-If you have ideas or suggestions, please feel free to open an issue or a feature request on [GitHub](https://github.com/yarospace/nvim.app).
+If you have ideas or suggestions, please feel free to open an issue or a feature request.

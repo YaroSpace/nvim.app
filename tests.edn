@@ -4,7 +4,12 @@
            :ns-patterns [".*"]}
           {:id          :integration
            :test-paths  ["test/nvim_app/integration"]
-           :ns-patterns [".*"]}]}
+           :ns-patterns [".*"]}]
           ;; :reporter kaocha.report.progress/report
+          ;; :reporter kaocha.report/documentation}]
           ;; :plugins [:kaocha.plugin/profiling :kaocha.plugin/notifier]
+
+  :color?      false
+  :watch?      false
+  :capture-output? false}
 

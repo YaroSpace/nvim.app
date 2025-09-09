@@ -3,7 +3,8 @@
    [nvim-app.github :as github]
    [com.stuartsierra.component :as component]
    [clojure.tools.logging :as log]
-   [nvim-app.state :as state])
+   [nvim-app.state :as state]
+   [nvim-app.utils :as u])
   (:import
    [java.util.concurrent Executors TimeUnit ScheduledThreadPoolExecutor]))
 
@@ -15,8 +16,13 @@
   (log/info "Scheduler: Updating Github repositories")
   (github/update-all!))
 
+(defn update-previews! []
+  (log/info "Scheduler: Updating previews")
+  (u/update-previews!))
+
 (defn start-tasks [config scheduler]
-  (schedule-task scheduler update-repos! (:update-repos-interval-hr config)))
+  (schedule-task scheduler update-repos! (:update-repos-interval-hr config))
+  (schedule-task scheduler update-previews! (:update-previews-interval-hr config)))
 
 (defn completed-tasks
   ([]

@@ -47,7 +47,6 @@
               ds-with-opts (jdbc/with-options ds {:builder-fn rs/as-unqualified-maps})]
 
           (db/run-migrations! {:datasource ds})
-          (db/query-one! ds [:raw "SET pg_trgm.similarity_threshold = 0.16"])
           (assoc this
                  :raw-ds ds
                  :datasource (if (:logging? config)

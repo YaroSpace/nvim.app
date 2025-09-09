@@ -12,6 +12,19 @@ services:
       - db-data:/var/lib/postgresql/data
     container_name: nvim-app-database
 
+  chromedriver:
+    image: erseco/alpine-chromedriver
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    ports:
+      - "9515:9515"
+    container_name: chromedriver
+    environment:
+      - CHROMEDRIVER_WHITELISTED_IPS='' # Disable IP whitelisting
+    restart: unless-stopped
+
   web:
     build: .
     depends_on:
@@ -27,6 +40,8 @@ services:
       DATABASE_USER: nvim
       DATABASE_PASSWORD: nvim
       # LOGBACK_LOGLEVEL: WARN
+    volumes:
+      - web-public:/app/web/public
     container_name: nvim-app
     networks:
         coolify:
@@ -38,6 +53,7 @@ services:
 
 volumes:
   db-data:
+  web-public:
 
 networks:
     coolify:

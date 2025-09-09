@@ -16,8 +16,27 @@ RUN clj -T:build uber
 
 FROM eclipse-temurin:24-alpine AS prod
 
-# Install Clojure in the image
+# RUN apk add --no-cache \
+#     bash \
+#     curl \
+#     chromium \
+#     chromium-chromedriver \
+#     xvfb \
+#     fluxbox \
+#     nss \
+#     freetype \
+#     harfbuzz \
+#     ttf-freefont \
+#     libstdc++ \
+#     font-noto \
+#     font-noto-cjk \
+#     font-noto-emoji
 
+# Set environment variables for Chrome and ChromeDriver
+# ENV CHROME_BIN=/usr/bin/chromium-browser
+# ENV CHROMEDRIVER_BIN=/usr/bin/chromedriver
+
+# Install Clojure
 # RUN curl -O https://download.clojure.org/install/linux-install-1.11.1.1413.sh && \
 #     chmod +x linux-install-1.11.1.1413.sh && \
 #     ./linux-install-1.11.1.1413.sh && \
@@ -28,5 +47,8 @@ WORKDIR /app
 COPY --from=build /build/target/nvim-app-*.jar app.jar
 # COPY deps.edn deps.edn
 
+# ENV DISPLAY=:99.0
+# CMD rm /tmp/.X99-lock
+# CMD Xvfb :99 -screen 0 1024x768x24 & fluxbox -display :99 & java -jar app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

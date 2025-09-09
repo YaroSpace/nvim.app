@@ -2,17 +2,17 @@
   (:require
    [nrepl.core :as nrepl]
    [clojure.tools.namespace.repl :as repl]
-   [clojure.string :as str]
    [rebel-readline.clojure.main :as main]
+   [clj-commons.pretty.repl :as pretty-repl]
+   [clj-commons.format.exceptions :as pretty]
    [puget.printer :as puget]
    [hashp.preload]
    [hashp.config]
    [user.java :refer :all]
-   [clj-commons.pretty.repl :as pretty-repl]
-   [clj-commons.format.exceptions :as pretty]
-   [clojure.test :as test]
    [kaocha.repl :as k]
-   [clojure.tools.logging :as log])
+   [clojure.test :as test]
+   [clojure.tools.logging :as log]
+   [clojure.string :as str])
 
   (:import
    [ch.qos.logback.classic Level]
@@ -127,7 +127,8 @@
 
 (comment
   (log/fatal (ex-format *e))
-  (print-java-members `java.sql.Timestamp :public-only true)
+  (print-java-members java.sql.Timestamp :public-only true)
+  (java-members-apropos "modifi" java.io.File :public-only true)
   (discover-test-namespaces)
   (refresh-and-test)
   (send-to-repl {:code "(+ 1 2)" :ns "user" :op "eval"} 7000)
