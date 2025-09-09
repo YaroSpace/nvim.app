@@ -52,14 +52,6 @@
     :set values
     :where where}))
 
-(defn db-empty? []
-  (empty? (query! {:select :table_name
-                   :from :information_schema.tables
-                   :where [:and
-                           [:= :table_type "BASE TABLE"]
-                           [:= :table_schema "public"]
-                           [:not= :table_name "schema_version"]]})))
-
 (defn run-migrations! [dc]
   (log/info "Running database migrations...")
   (let [config {:store :database
@@ -101,7 +93,7 @@
 
 (comment
   (toggle-logging)
-  (migration-create! "user-table-add-dirty-hide")
+  (migration-create! "app-table-create")
   (migration-up!)
   (migration-down!)
   (do
@@ -109,4 +101,6 @@
     (migration-up!))
   (map #(dissoc % :tsv :topics_tsv) (take 10 (select :repos)))
   (update! :users :values {:role "admin"} :where [:id 1])
-  (select :categories))
+  (select :categories)
+  (select-one :app)
+  (insert! :app :values [{:data [:lift {:test "value"}]}]))

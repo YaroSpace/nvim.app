@@ -4,15 +4,15 @@
    [nvim-app.views.layout :refer [base-layout]]
    [nvim-app.views.repos-compact :as compact]
    [nvim-app.views.repos-shared :refer :all]
-   [nvim-app.state :refer [dev?]]
    [io.pedestal.http.route :refer [url-for]]
    [hiccup2.core :refer [html]]
    [hiccup.page :refer [include-js]]
    [hiccup.util :as u]
    [clojure.string :as str])
 
-  (:import [java.time LocalDate]
-           [java.time.temporal ChronoUnit]))
+  (:import
+   [java.time LocalDate]
+   [java.time.temporal ChronoUnit]))
 
 (defn week->date [weeks]
   (let [epoch (LocalDate/parse "1970-01-01")]
@@ -203,15 +203,23 @@
              :class "rounded-lg border border-subtle p-6 hover:shadow-md transition-shadow bg-surface-card"}
        [:form
         [:div {:class "flex items-start justify-between"}
-         [:div {:class "flex-1"}
-          [:div {:class "flex sm:flex-row flex-col items-start justify-between"}
-           [:a {:class "flex items-center text-xl font-semibold text-brand-strong mb-2 overflow-hidden
+         [:div {:class "flex-1 relative"}
+          [:div {:class "preview-popup absolute left-100 z-50 hidden invisible sm:visible p-2 border border-brand shadow-lg"
+                 :hx-get (url-for :preview :params {:id id}) :hx-include hx-include
+                 :hx-trigger "click" :hx-target "this"}
+           "Loading preview..."]
+
+          [:div {:class "flex sm:flex-row flex-col items-center mb-2"}
+           [:a {:class "flex items-center text-xl font-semibold text-brand-strong overflow-hidden
                    break-words break-all whitespace-normal max-w-full hyphens-auto"
-                :href url} name
-            (when archived
-              [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
-            (when hidden
-              [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])]
+                :href url
+                :hx-on:mouseover "showPreview(this);" :hx-on:mouseleave "hidePreview(this);"}
+            name]
+
+           (when archived
+             [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
+           (when hidden
+             [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])
            (when edit?
              (hide-toggle id hidden))]
 
@@ -300,6 +308,7 @@
     (base-layout
      request
      [:div {:class "max-w-4xl mx-auto px-4 py-6"}
+      (include-js "/js/repos.js")
       (search-input url (:q params))
       [:img {:id "indicator" :class "htmx-indicator hidden" :src "/images/loader.svg"}]
 

@@ -23,16 +23,18 @@
 (add-encoder PGobject encode-str)
 
 (def CSP-policy
-  (str/join "; " ["default-src 'self'"
-                  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com 
+  (str/join
+   "; "
+   ["default-src 'self'"
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com 
                    https://*.googletagmanager.com"
 
-                  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com 
+    "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com 
                    https://*.googletagmanager.com https://github.com"
 
-                  "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com 
+    "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com 
                    https://*.githubusercontent.com"
-                  "style-src 'self' 'unsafe-inline'"]))
+    "style-src 'self' 'unsafe-inline'"]))
 
 (def csp-interceptor
   (interceptor/interceptor
@@ -143,6 +145,7 @@
 (defn service-map [config]
   {::http/routes r/routes
    ::http/resource-path "/public"
+   ::http/file-path "/app/web/public"
    ::http/type :jetty
    ::http/port (:port config)
    ::http/host (:host config)

@@ -7,6 +7,7 @@
    [nvim-app.views.repos :as repos]
    [nvim-app.views.news :as news]
    [nvim-app.views.about :as about]
+   [nvim-app.views.preview :as preview]
    [nvim-app.views.not-found :as not-found]
    [nvim-app.utils :as u]
    [io.pedestal.http.route :as route :refer [url-for]]
@@ -175,7 +176,7 @@
                                   :values [{:github_id id
                                             :username login
                                             :email (or email "")
-                                            :name name
+                                            :name (or name "")
                                             :url html_url
                                             :avatar_url avatar_url}])))]
 
@@ -203,6 +204,17 @@
               (redirect (route/url-for :repos-page :params form-params)
                         {:status 303}))))})
 
+(def preview
+  {:name :preview
+   :enter
+   (fn [{:keys [request] :as context}]
+     (let [id (-> request :query-params :id (or "0") parse-long)]
+       (if (u/make-preview id)
+         (assoc context :response
+                (ok (preview/index id)))
+         (assoc context :response
+                {:status 404}))))})
+
 (comment
   "
 ```http
@@ -211,4 +223,3 @@ Accept: application/json
 
 ```
 ")
-

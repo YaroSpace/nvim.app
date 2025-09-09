@@ -14,4 +14,5 @@
      ["/auth/github" :get h/github-login :route-name :github-login]
      ["/auth/github" :delete h/github-logout :route-name :github-logout]
      ["/auth/github/callback" :get h/github-callback :route-name :github-callback]
-     ["/user/watch" :put h/user-watch-toggle :route-name :watch-toggle]}))
+     ["/user/watch" :put h/user-watch-toggle :route-name :watch-toggle]
+     ["/preview" :get h/preview :route-name :preview]}))
