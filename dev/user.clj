@@ -82,11 +82,14 @@
    (doseq [line (str/split (str data) (re-pattern sep))]
      (println line))))
 
+(def *tap nil)
+
 (defn tap>> [data-or-label & [data]]
   (let [data* (or data data-or-label)]
     (when data (clojure.core/tap> data-or-label))
     (clojure.core/tap> data*)
     (clojure.core/tap> "================================================>")
+    (alter-var-root #'*tap (constantly data*))
     data*))
 
 (defn portal-start []

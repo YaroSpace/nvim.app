@@ -33,11 +33,20 @@
          (strip-trace)
          (assoc :trace (.getStackTrace ex))))))
 
-(defn pcall [fn]
+(defn pcall
+  "Protected call, returns [success?, result or error message]"
+  [fn & args]
   (try
-    [true (fn)]
+    [true (apply fn args)]
     (catch Exception e
+      (log/errorf "Error during pcall: %s" (ex-format e))
       [false (ex-format e)])))
+
+(defn rpcall
+  "Protected call, returns result or nil"
+  [fn & args]
+  (let [[success? result] (apply pcall fn args)]
+    (when success? result)))
 
 (defn json-parse
   ([data]
@@ -62,48 +71,52 @@
 
 (defn fetch-request
   "
-  Makes request using clj-http.client and returns {:status, :body, :errors}.
+  Makes request using clj-http.client.
   Body and errors are parsed as json if possible. 
-  Errors are a merge of exception data and errors field from response body.
+  Errors are :errors from response body or exception message
   Logs error on failure.
+
+  Arguments:
+    - `request` - request map, 
+    - `:verbose` - log errors (default false)
+
+  Returns: `{:status, :body, :errors}`.
   "
   [request & {:keys [verbose] :or {verbose false}}]
 
   (try
     (let [{:keys [status headers body] :as resp} (http/request request)
-          json (json-parse body)]
+          json (or (json-parse body) body)]
       {:status status
        :headers headers
-       :body (or json body)
-       :errors (:errors (or json body))
+       :body json
+       :errors (:errors json)
        :response resp})
 
     (catch Exception e
-      (let [{:keys [status reason-phrase headers body] :as response} (ex-data e)
-            json (json-parse body)
+      (let [{:keys [status reason-phrase headers body]} (ex-data e)
+            json (or (json-parse body) body)
             resp {:status status
-                  :errors {:message (or (get-in (or json body) [:errors :message])
+                  :errors {:message (or (get-in json [:errors :message])
                                         (ex-message e))
                            :reason reason-phrase}
                   :headers headers
                   :body (or json body)}]
-                  ; :request (update request :body truncate)}]
-                  ; :response response
 
         (when verbose
           (log/error (str "Failed to fetch request: "
                           status " " (select-keys resp [:status :errors :body])))
-          (tap> resp))
+          (tap> resp)
+          (tap> e))
         resp))))
 
+(def driver nil)
 (defn driver-opts []
   (let [config (:chrome app-config)]
     {:host (:host config)
      :port (:port config)
      :args ["--no-sandbox"]
      :size [680 1000]}))
-
-(def driver nil)
 
 (def preview-dir "/app/web/public/images/")
 (def preview-filename (str preview-dir "preview-%s.png"))

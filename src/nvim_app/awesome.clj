@@ -6,7 +6,16 @@
 (def url "https://raw.githubusercontent.com/rockerBOO/awesome-neovim/refs/heads/main/README.md")
 (def repo-re #"^- \[(.*?)\]\((.*?)\) - (.*)")
 
-(defn parse-readme [content]
+(defn parse-readme
+  "Parses the content of the awesome-neovim README to extract plugin information.
+
+   Arguments:
+   - `content`: String content of the README file.
+
+   Returns: [{:category, :repo, :url, :description}, ...]
+   "
+  [content]
+
   (let [lines (str/split-lines content)
         result
         (->> lines
@@ -32,7 +41,11 @@
     (log/info "Downloaded" (count result) "plugins from awesome-neovim README.")
     result))
 
-(defn fetch-readme []
+(defn fetch-readme
+  "Fetches the awesome-neovim README from GitHub.
+   Returns: String content of the README or `nil` on failure."
+  []
+
   (let [resp (utils/fetch-request {:method :get :url url})]
     (log/info "Downloading awesome-neovim README...")
 
@@ -40,8 +53,12 @@
       (:body resp)
       (log/error "Failed to download awesome-neovim README." resp))))
 
-(defn get-plugins []
-  (parse-readme (fetch-readme)))
+(defn get-plugins
+  "Fetches and parses the awesome-neovim README to extract plugin information.
+   Returns: [{:category, :repo, :url, :description}, ...] or nil on failure.
+  "
+  []
+  (parse-readme (or (fetch-readme) "")))
 
 (comment
   (re-matches #"https://[^/].+/(.+/.+)$" "https://git.sr.ht/~whynothugo/lsp_lines.nvim")

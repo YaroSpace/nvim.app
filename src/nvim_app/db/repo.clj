@@ -116,3 +116,38 @@
                     :desc]])
        :limit limit
        :offset offset}))))
+
+(defn with-duplicate-urls []
+  (let [url-regex "https?://github.com/([^/]+/[^/]+).*"]
+    (->>
+     (db/query!
+      {:select [[:r1.id :id1] [:r2.id :id2]]
+       :from [[:repos :r1]]
+       :join [[:repos :r2]
+              [:and
+               [:< :r1.id :r2.id]
+               [:=
+                [:lower [:regexp_replace :r1.url url-regex "\\1"]]
+                [:lower [:regexp_replace :r2.url url-regex "\\1"]]]]]})
+     (mapcat vals))))
+
+(defn with-duplicate-names []
+  (->>
+   (db/query!
+    {:select [:r1.id]
+     :from [[:repos :r1]]
+     :join [[:repos :r2]
+            [:and
+             [:!= :r1.id :r2.id]
+             [:= :r1.name :r2.name]
+             [:= :r1.stars 0] [:= :r1.topics "awesome"]]]})
+   (map :id)))
+
+(defn renamed-repos []
+  (->>
+   (db/query!
+    {:select [:id]
+     :from [:repos]
+     :where  [:and [:ilike :url "%github.com%"]
+              [:= :stars 0] [:= :topics "awesome"]]})
+   (map :id)))
