@@ -1,12 +1,15 @@
 (ns nvim-app.components.sched
   (:require
    [nvim-app.github :as github]
-   [com.stuartsierra.component :as component]
-   [clojure.tools.logging :as log]
    [nvim-app.state :as state]
-   [nvim-app.utils :as u])
+   [nvim-app.db.app :as app]
+   [nvim-app.utils :as u]
+   [com.stuartsierra.component :as component]
+   [clojure.tools.logging :as log])
   (:import
-   [java.util.concurrent Executors TimeUnit ScheduledThreadPoolExecutor]))
+   [java.util.concurrent Executors TimeUnit ScheduledThreadPoolExecutor]
+   [java.time Instant Duration]
+   [java.util Date]))
 
 (defn schedule-task [scheduler task interval]
   (.scheduleAtFixedRate scheduler task 1 interval TimeUnit/HOURS)
@@ -17,8 +20,17 @@
   (github/update-all!))
 
 (defn update-previews! []
-  (log/info "Scheduler: Updating previews")
-  (u/update-previews!))
+  (when-not (some->
+             (:last-preview-update (app/get-data))
+             (Instant/parse)
+             (Duration/between (Instant/now))
+             (.toDays)
+             (< 7))
+
+    (log/info "Scheduler: Updating previews")
+    (u/update-previews!)
+    (app/save-data! (assoc (app/get-data)
+                           :last-preview-update (Date.)))))
 
 (defn start-tasks [config scheduler]
   (schedule-task scheduler update-repos! (:update-repos-interval-hr config))

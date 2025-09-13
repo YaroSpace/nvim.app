@@ -24,8 +24,6 @@
          (let [raw (or @raw sql)]
            (throw (ex-info "Database query failed" {:query raw} e))))))))
 
-; TODO: add exception handling
-
 (defn query-one!
   ([sql] (query-one! (get-ds) sql))
   ([ds sql]
@@ -102,5 +100,4 @@
   (map #(dissoc % :tsv :topics_tsv) (take 10 (select :repos)))
   (update! :users :values {:role "admin"} :where [:id 1])
   (select :categories)
-  (select-one :app)
-  (insert! :app :values [{:data [:lift {:test "value"}]}]))
+  (select-one :app))
