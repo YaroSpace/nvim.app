@@ -15,7 +15,7 @@
 
  :sched    {:enable #profile {:default true :dev false}
             :update-repos-interval-hr 4
-            :update-previews-interval-hr 120}
+            :update-previews-interval-hr 168}
 
  :github  {:token #or [#env GITHUB_TOKEN #ref [:secrets :github :token]]
            :client-id #or [#env GITHUB_CLIENT_ID #ref [:secrets :github :client-id]]
