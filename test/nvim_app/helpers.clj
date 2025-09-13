@@ -6,10 +6,14 @@
    [nvim-app.db.core :as db]
    [io.pedestal.http.route :as route]
    [com.stuartsierra.component :as component]
+   [cheshire.core :as json]
    [clojure.string :as str])
 
   (:import
    [org.testcontainers.containers PostgreSQLContainer]))
+
+(defn to-json [data]
+  (json/generate-string data))
 
 (defn sut->url
   [sut path]

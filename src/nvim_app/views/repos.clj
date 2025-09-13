@@ -182,7 +182,7 @@
 
 (defn hide-toggle [id hidden]
   (let [toggle-id (str "hidden-toggle-" id)]
-    [:div {:class "flex items-center text-sm text-nvim-text-muted space-x-2 mb-2"}
+    [:div {:class "flex items-center text-sm text-nvim-text-muted space-x-2 mb-2 mr-4"}
      [:span "Show"]
      [:label {:for toggle-id :title "Toggle plugin visiblity"
               :class "relative block h-7 w-14 rounded-full transition-colors bg-nvim-surface border border-brand rounded-xl"}
@@ -209,17 +209,18 @@
                  :hx-trigger "click" :hx-target "this"}
            "Loading preview..."]
 
-          [:div {:class "flex sm:flex-row flex-col items-center mb-2"}
+          [:div {:class "flex sm:flex-row flex-col items-center justify-between mb-2"}
            [:a {:class "flex items-center text-xl font-semibold text-brand-strong overflow-hidden
                    break-words break-all whitespace-normal max-w-full hyphens-auto"
                 :href url
                 :hx-on:mouseover "showPreview(this);" :hx-on:mouseleave "hidePreview(this);"}
-            name]
+            name
 
-           (when archived
-             [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
-           (when hidden
-             [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])
+            (when archived
+              [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
+            (when hidden
+              [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])]
+
            (when edit?
              (hide-toggle id hidden))]
 
