@@ -53,7 +53,7 @@
         (recur next-errors-count)))))
 
 (defn format-log-message [level throwable message]
-  (let [level-str (str "*\\[" (str/capitalize (name level)) "\\]*")
+  (let [level-str (format "*\\[%s\\]*" (str/capitalize (name level)))
         msg (escape-markdown message)
         exc (when throwable (escape-markdown (.getMessage throwable)))]
     (str level-str "\n" msg (when exc (str "\n`" exc "`")))))

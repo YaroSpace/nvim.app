@@ -18,8 +18,6 @@
   (when @app-system-atom
     (component-repl/stop))
 
-  (repl/refresh)
-
   (try
     (component-repl/start)
     (catch Exception e

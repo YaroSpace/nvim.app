@@ -42,7 +42,7 @@
        (map ns-name)
        (filter #(str/includes? % "-test"))
        (filter #(str/includes? % "nvim-app"))
-       (filter #(str/includes? % "integration"))
+       (filter #(str/includes? % "unit"))
        (map symbol)))
 
 (defn run-tests []
@@ -50,17 +50,20 @@
   ; (k/run :unit)
   ; (k/run :integration))
 
-(defn refresh []
-  (repl/refresh))
-
 (defn refresh-and-test []
   (repl/refresh :after 'user/run-tests))
 
-(defn reset []
-  (when-not (find-ns 'dev) (require 'dev))
-  ((resolve 'dev/reset)))
+(defn system-reset []
+  (try
+    (when-not (find-ns 'dev) (require 'dev))
+    ((resolve 'dev/reset))
+    (catch Exception _)))
 
-(defn set-log-level [logger-name level]
+(defn reset []
+  (repl/refresh))
+  ; (system-reset))
+
+(defn set-log-level! [logger-name level]
   (let [logger (LoggerFactory/getLogger logger-name)]
     (.setLevel ^ch.qos.logback.classic.Logger logger (Level/valueOf (name level)))))
 
@@ -76,6 +79,7 @@
 (def cp> puget.printer/cprint)
 
 (defn pn>
+  "Print and strip newlines"
   ([data]
    (pn> "\\n|\n" data))
   ([sep data]
@@ -84,7 +88,10 @@
 
 (def *tap nil)
 
-(defn tap>> [data-or-label & [data]]
+(defn tap>>
+  "Tap with optinal label and save last tapped value to *tap"
+  [data-or-label & [data]]
+
   (let [data* (or data data-or-label)]
     (when data (clojure.core/tap> data-or-label))
     (clojure.core/tap> data*)
@@ -117,7 +124,8 @@
       (log/fatal (ex-format x)))))
 
 (defn setup-user []
-  (repl/disable-reload! (the-ns 'user))
+  ; (repl/disable-reload! (the-ns 'user))
+  ; (repl/disable-reload! (the-ns 'dev))
 
   (patch-rebel-readline)
   (hashp-setup)
@@ -135,4 +143,4 @@
   (discover-test-namespaces)
   (refresh-and-test)
   (send-to-repl {:code "(+ 1 2)" :ns "user" :op "eval"} 7000)
-  (set-log-level "com.zaxxer.hikari" :warn))
+  (set-log-level! "com.zaxxer.hikari" :warn))

@@ -31,34 +31,3 @@
       (db/query-one! {:insert-into :plugins
                       :columns [:category_id :repo :url :description]
                       :values [[(:id category-id) repo url description]]}))))
-
-#_(deftest migrations-test
-    (testing "Testing awesome-neovim update"
-      #_{:clj-kondo/ignore [:unresolved-symbol]}
-      (h/with-database-system sut
-        (let [_ (insert-test-data)
-              plugin {:category "New Category"
-                      :repo "new/repo"
-                      :url "http://example.com/new/repo"
-                      :description "A new plugin"}]
-
-          (testing "Adding new plugin"
-            (plugin/upsert-plugin! plugin)
-
-            (is (= {:id 6
-                    :category_id 6
-                    :repo "new/repo"
-                    :url "http://example.com/new/repo"
-                    :description "A new plugin"}
-                   (last (plugin/get-plugins)))))
-
-          (testing "Updating a plugin"
-            (plugin/upsert-plugin! (assoc plugin :description "New description"))
-
-            (is (= {:id 6
-                    :category_id 6
-                    :repo "new/repo"
-                    :url "http://example.com/new/repo"
-                    :description "New description"}
-                   (last (plugin/get-plugins)))))))))
-

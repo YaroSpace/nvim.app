@@ -1,6 +1,6 @@
 (ns nvim-app.components.app
   (:require
-   [nvim-app.state :refer [app-system-atom]]
+   [nvim-app.state :refer [app-system-atom app-config dev?]]
    [nvim-app.github :as github]
    [nvim-app.db.core :as db]
    [nvim-app.logging :refer [wrap-logging-with-notifications]]
@@ -13,15 +13,19 @@
    :updates (sched/completed-tasks)
    :users (count (db/select :users))})
 
+(defn reset-state! [app-component]
+  (let [config (:config app-component)]
+    (reset! app-system-atom app-component)
+    (alter-var-root #'app-config (constantly config))
+    (alter-var-root #'dev? (constantly (= :dev (-> config :app :env))))))
+
 (defrecord App [config app]
   component/Lifecycle
 
   (start [this]
     (log/info "Starting nvim-app")
 
-    (reset! app-system-atom this)
-    (alter-var-root #'nvim-app.state/app-config (constantly config))
-    (alter-var-root #'nvim-app.state/dev? (constantly (= :dev (-> config :app :env))))
+    (reset-state! this)
 
     (when (-> config :telegram :enable)
       (wrap-logging-with-notifications))
@@ -40,6 +44,3 @@
 (defn new
   [config]
   (->App config (:app config)))
-
-(comment
-  (alter-var-root #'nvim-app.state/app-config #(assoc-in % [:db-spec :logging?] false)))

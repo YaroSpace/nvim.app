@@ -1,6 +1,6 @@
 (ns nvim-app.db.core
   (:require
-   [nvim-app.state :refer [app-config app-system-atom]]
+   [nvim-app.state :refer [app-config app-system-atom alter-in-app-config!]]
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
    [migratus.core :as migratus]
@@ -11,6 +11,7 @@
 
 (defn query!
   ([sql] (query! (get-ds) sql jdbc/execute!))
+  ([ds sql] (query! ds sql jdbc/execute!))
   ([ds sql cmd]
    (let [raw (volatile! nil)]
      (try
@@ -58,7 +59,8 @@
     (try
       (migratus/migrate config)
       (catch Exception e
-        (throw (ex-info "Failed to run database migrations" e))))))
+        (let [msg (ex-message e)]
+          (throw (ex-info "Failed to run database migrations" {:message msg} e)))))))
 
 (defn get-migration-config []
   {:store :database
@@ -86,8 +88,9 @@
     (migratus.core/pending-list config)))
 
 (defn toggle-logging []
-  (alter-var-root #'app-config update-in [:db-spec :logging?] not)
-  (:logging? (:db-spec app-config)))
+  (let [current (-> app-config :db-spec :logging?)]
+    (alter-in-app-config! [:db-spec :logging?] (not current))
+    (not current)))
 
 (comment
   (toggle-logging)

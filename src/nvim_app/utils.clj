@@ -1,7 +1,7 @@
 (ns nvim-app.utils
   (:require
    [nvim-app.db.core :as db]
-   [nvim-app.state :refer [app-config dev?]]
+   [nvim-app.state :refer [app-config alter-in-app-config! dev?]]
    [hiccup2.core :refer [raw]]
    [markdown.core :as md]
    [clj-http.client :as http]
@@ -15,6 +15,14 @@
    [slingshot.slingshot :refer [try+]])
   (:import [java.time Instant Duration]))
 
+(defn older-than?
+  "Checks if given instant is older than specified number of days from now"
+  [^Instant instant days]
+  (-> instant
+      (Duration/between (Instant/now))
+      (.toDays)
+      (> days)))
+
 (defn strip-trace [m]
   (if-not (map? m)
     m
@@ -25,28 +33,33 @@
                     (vector? %) (mapv strip-trace %)
                     :else %))))
 
+(defn ex-short [ex]
+  (-> ex
+      (Throwable->map)
+      (strip-trace)
+      (assoc :trace (.getStackTrace ex))))
+
 (defn ex-format [ex]
   (with-out-str
-    (pprint/pprint
-     (-> ex
-         (Throwable->map)
-         (strip-trace)
-         (assoc :trace (.getStackTrace ex))))))
+    (pprint/pprint (ex-short ex))))
 
-(defn pcall
-  "Protected call, returns [success?, result or error message]"
-  [fn & args]
-  (try
-    [true (apply fn args)]
-    (catch Exception e
-      (log/errorf "Error during pcall: %s" (ex-format e))
-      [false (ex-format e)])))
+(defmacro with-pcall
+  "Protected call, returns [success?, result of body or formatted exception]
+   Logs errors on failure"
+  [& body]
+  `(try
+     (let [result# (do ~@body)]
+       [true result#])
+     (catch Exception e#
+       (log/errorf "Error during pcall: %s" (ex-format e#))
+       [false (ex-short e#)])))
 
-(defn rpcall
-  "Protected call, returns result or nil"
-  [fn & args]
-  (let [[success? result] (apply pcall fn args)]
-    (when success? result)))
+(defmacro with-rpcall
+  "Protected call, returns result of body or `nil`.
+   Logs errors on failure"
+  [& body]
+  `(let [[success?# result#] (with-pcall ~@body)]
+     (when success?# result#)))
 
 (defn json-parse
   ([data]
@@ -127,17 +140,17 @@
    (io/file)
    (.lastModified)
    (Instant/ofEpochMilli)
-   (Duration/between (Instant/now))
-   (.toDays)
-   (> 7)))
+   (older-than? 7)))
 
 (defn make-preview
   ([id]
    (make-preview id false))
   ([id force-update]
-   (let [filename (format preview-filename id)]
+   (let [filename (format preview-filename id)
+         file (io/file filename)]
      (or
-      (and (-> (io/file filename) .exists)
+      (and (-> file .exists)
+           (> 40000 (-> file .length))
            (not (preview-stale? id))
            (not force-update))
 
@@ -158,8 +171,7 @@
              (log/error "HTTP errror during preview for repo" id response))
 
            (catch [:type :etaoin/timeout] _
-             (alter-var-root #'app-config
-                             #(assoc-in % [:app :features :preview] false))
+             (alter-in-app-config! [:app :features :preview] false)
              (log/error "Timeout making preview for repo" id))
 
            (catch Object e
@@ -167,18 +179,18 @@
                (do (tap> e) false)
                (log/error "Failed to make preview for repo " (ex-format e)))))))))))
 
-(defn update-previews! []
+(defn update-previews! [& {:keys [force-update] :or {force-update false}}]
   (when (-> app-config :app :features :preview)
     (->>
      (for [{:keys [id]} (db/select :repos)]
-       (make-preview id))
+       (make-preview id force-update))
      (keep some?)
      (count)
      (log/info "Updated previews:"))))
 
 (comment
   (update-previews!)
-  (make-preview 754 true)
+  (make-preview 6 true)
   (def driver (e/chrome (driver-opts)))
   (e/go driver "https://github.com/mistweaverco/kulala.nvim")
   (e/get-element-tag driver {:tag :article :fn/has-class "entry-content"}))

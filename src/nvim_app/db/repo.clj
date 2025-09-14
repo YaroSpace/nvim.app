@@ -2,11 +2,9 @@
   (:require
    [nvim-app.db.core :as db]
    [honey.sql.pg-ops :refer [atat]]
+   [clojure.instant :as inst]
    [clojure.string :as str]
-   [clojure.tools.logging :as log])
-  (:import
-   [java.time Instant]
-   [java.sql Timestamp]))
+   [clojure.tools.logging :as log]))
 
 (defn order-by [sort]
   (if (str/blank? sort) []
@@ -15,7 +13,8 @@
         "stars_week" [[[:- :stars :stars_week] :desc]]
         "stars_month" [[[:- :stars :stars_month] :desc]]
         "updated" [[:updated :desc]]
-        "created" [[:created :desc]])))
+        "created" [[:created :desc]]
+        :else [:stars :desc])))
 
 (defn user-watched [user]
   (let [watched (:watched (db/select-one :users :id (:id user)))]
@@ -48,7 +47,7 @@
   (let [{:keys [name owner description archived
                 stars stars_week stars_month
                 topics created updated]} repo
-        default-date (Timestamp/from (Instant/parse "1970-01-01T00:00:00Z"))]
+        default-date (inst/read-instant-timestamp "1970-01-01")]
 
     (db/query-one!
      (let [-description (or description "")

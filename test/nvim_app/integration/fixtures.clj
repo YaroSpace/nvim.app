@@ -1,10 +1,8 @@
 (ns nvim-app.integration.fixtures
-  (:import
-   [java.time Instant]
-   [java.sql Timestamp]))
+  (:require [clojure.instant :as inst]))
 
 (defn str->date [s]
-  (Timestamp/from (Instant/parse s)))
+  (inst/read-instant-timestamp s))
 
 (def categories
   [{:id 1, :name "Plugin Manager"}
