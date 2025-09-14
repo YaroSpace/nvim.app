@@ -4,16 +4,15 @@
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
    [nvim-app.awesome :as awesome]
-   [nvim-app.utils :refer [fetch-request rpcall]]
+   [nvim-app.utils :refer [fetch-request with-rpcall]]
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.core.async :as a]
    [clojure.tools.logging :as log]
-   [clojure.string :as str])
-
+   [clojure.string :as str]
+   [clojure.instant :as inst])
   (:import
-   [java.time Instant LocalDate]
-   [java.sql Timestamp]))
+   [java.time LocalDate]))
 
 (def github-config
   {:api-uri "https://api.github.com/graphql"
@@ -24,11 +23,11 @@
    :data-template (slurp (io/resource "github/data-template.gql")) ; template for data updated query
    :data-partial (slurp (io/resource "github/data-partial.gql"))}) ; partial for data updated query
 
-(defn build-query [query & params]
-  (json/encode {:query (apply format query params)}))
+(defn build-graphql-query [query-type & params]
+  (let [query (query-type github-config)]
+    (json/encode {:query (apply format query params)})))
 
 (defn make-github-request [body]
-  ; (user/tap>> {:body body}
   (fetch-request
    {:method :post
     :url (:api-uri github-config)
@@ -36,7 +35,7 @@
     :headers {"Authorization" (str "Bearer " (:token github-config))}
     :body body}))
 
-(defn normalize-github-node
+(defn normalize-search-node
   "Normalizes GitHub node response.
 
   Arguments:
@@ -53,12 +52,11 @@
          :owner (:login owner)
          :archived isArchived
          :topics (map #(get-in % [:topic :name]) (:nodes repositoryTopics))
-         :created (some-> createdAt (Instant/parse) (Timestamp/from))
+         :created (some-> createdAt (inst/read-instant-timestamp))
          :updated (some-> (get-in defaultBranchRef [:target :committedDate])
-                          (Instant/parse)
-                          (Timestamp/from))))
+                          (inst/read-instant-timestamp))))
 
-(defn normalize-github-data-response
+(defn normalize-data-response
   "Normalizes GitHub response.
 
    Arguments:
@@ -73,21 +71,21 @@
                data
                (remove (fn [[repo repo-data]] (or (= :rateLimit repo)
                                                   (nil? repo-data))))
-               (map (fn [[_ repo-data]] (normalize-github-node {:node repo-data}))))}))
+               (map (fn [[_ repo-data]] (normalize-search-node {:node repo-data}))))}))
 
-(defn process-github-search-response
+(defn process-search-response
   "
   Normalizes GitHub search response and processes results with update-fn.
 
   Arguments:
   - `resp`: response map `{:body {...} :errors [...]}`.
-  - `update-fn`: function that processes normalized results (default identity)
+  - `update-fn`: function to process normalized results (default identity)
 
   Returns:
   `{:results [...], :errors [...], :page-info {...}, :rate-limit {...}}`,
   "
   ([resp]
-   (process-github-search-response resp identity))
+   (process-search-response resp identity))
   ([resp update-fn]
    (let [data (get-in resp [:body :data])
          errors (:errors resp)
@@ -95,7 +93,7 @@
          search (:search data)
          pageInfo (:pageInfo search)
          search-normalized (when-let [edges (:edges search)]
-                             (map normalize-github-node edges))]
+                             (map normalize-search-node edges))]
      (when search-normalized
        (log/info "Github: Downloaded" (count search-normalized) "repositories")
        (update-fn search-normalized))
@@ -120,17 +118,14 @@
    & {:keys [delay-ms] :or {delay-ms 1000}}]
 
   (let [{:strs [retry-after]} headers ; x-ratelimit-remaining x-ratelimit-reset  
-        message-body (:message body)
         delay (* delay-ms (parse-long (or retry-after "1")))]
 
     (cond
-      ; Rate limit exceeded
-      (and (= 403 status)
-           (str/starts-with? message-body "You have exceeded a secondary rate limit"))
+      (and (= 403 status) ; Rate limit exceeded
+           (str/starts-with? (:message body) "You have exceeded a secondary rate limit"))
       delay
 
-      ; Service Unavailable or Timeout
-      (contains? #{503 504} status)
+      (contains? #{503 504} status) ; Service Unavailable or Timeout
       delay
 
       :else false)))
@@ -147,7 +142,7 @@
   [request-fn & {:keys [retries] :or {retries 2}}]
 
   (a/go-loop [attempt 1]
-    (let [response (rpcall request-fn)
+    (let [response (with-rpcall (request-fn))
           {:keys [body errors]} response
           delay (should-retry-after? response)]
 
@@ -155,78 +150,84 @@
         (do
           (log/warn "Retrying request #" attempt "in" (/ delay 1000) "s due to errors:"
                     (:message body) errors)
+          (log/warnf "Retrying request #%s in %ss due to errors: %s %s"
+                     attempt (/ delay 1000) (:message body) errors)
           (a/<! (a/timeout (* attempt delay)))
           (recur (inc attempt)))
 
-        response))))
+        (or response
+            {:errors [{:message (str "Request failed after retries: " attempt)}]})))))
 
-(defn process-github-response-async
+(defn process-search-response-async
   "
-  Makes request for each cursor from cursors-ch using query function,
+  Makes request for each cursor from cursors-ch,
   normalizes and processes response with update-fn (e.g. updates in DB).
 
   Arguments:
-  - `query`: function that takes GH page cursor and returns json payload with GraphQL query.
+  - `search-str`: GitHub search string.
   - `cursors-ch`: channel with GH page cursors (strings).
-  - `update-fn`: function that processes response.
-  - `max-conccurency`: max number of concurrent requests (default 10).
-  - `delay-ms`: max random delay before each request (default 1000ms).
+  - `:page-size` (Number): Number of results per page.
+  - `:update-fn`: function that processes response.
+  - `:max-conccurency`: max number of concurrent requests (default 10).
+  - `:delay-ms`: max random delay before each request (default 1000ms).
 
-  Returns: channel with combined results
-  `{:results [...], :errors [...], :page-info {...}, :rate-limit {...}}`
+  Returns: a channel with normalized responses
+  `{:results [...], :errors [...], :rate-limit {...}}`
   "
-  [query cursors-ch update-fn & {:keys [max-conccurency delay-ms]
-                                 :or {max-conccurency 10 delay-ms 1000}}]
+  [search-str cursors-ch
+   & {:keys [page-size update-fn max-conccurency delay-ms]
+      :or {page-size 2 update-fn identity
+           max-conccurency 10 delay-ms 1000}}]
 
   (let [responses-ch (a/chan) results-ch (a/chan)]
     (a/pipeline-async
      max-conccurency responses-ch
-     (fn [page-token out-ch]
-       (a/go
-         (a/<! (a/timeout (rand-int delay-ms)))
-         (a/>! out-ch (a/<! (retry-on-errors-async
-                             #(make-github-request (query page-token)))))
-         (a/close! out-ch)))
+     (fn [page-cursor out-ch]
+       (let [params [:main-query search-str page-size page-cursor]
+             query (apply build-graphql-query params)]
+         (a/go
+           (a/<! (a/timeout (rand-int delay-ms)))
+           (a/>! out-ch (a/<! (retry-on-errors-async #(make-github-request query))))
+           (a/close! out-ch))))
      cursors-ch)
 
     (a/pipeline-async
      5 results-ch
      (fn [resp out-ch]
        (a/go
-         (a/>! out-ch (rpcall process-github-search-response resp update-fn))
+         (a/>! out-ch (or (with-rpcall (process-search-response resp update-fn))
+                          {:errors [{:message "Failed to process GitHub response"}]}))
          (a/close! out-ch)))
      responses-ch)
 
     results-ch))
 
-(defn search-github-async
+(defn fetch-search-cursors-async
   "
-  Searches GitHub repositories using provided search string,
-  optionally processes results with update-fn (e.g. update in DB).
+  Fetches GitHub search cursors asynchronously.
 
   Arguments:
   - `search-str`: GitHub search string.
-  - `page-size` (Number): Number of results per page.
-  - `page-limit` (Number): Max number of pages to fetch.
-  - `update-fn` (Function): Function to process each page of results.
+  - `:page-size` (Number): Number of results per page.
+  - `:page-limit` (Number): Max number of pages to fetch.
 
-  Returns: a channel with combined results
-  - `{:results [...], :errors [...], :page-info {...}, :rate-limit {...}}`
+  Returns: a channel with GH page cursors (strings).
   "
-  [search-str & {:keys [page-size page-limit update-fn]
-                 :or {page-size 2 page-limit 2 update-fn identity}}]
+  [search-str & {:keys [page-size page-limit]
+                 :or {page-size 2 page-limit 2}}]
 
-  (let [cursors-ch (a/chan)
-        query-for #(partial build-query (get github-config %) search-str page-size)]
+  (let [cursors-ch (a/chan)]
+    (a/go (a/>! cursors-ch "")) ; start with empty cursor
 
-    (a/go (a/>! cursors-ch ""))
-    (a/go-loop [page-token "" pages 1]
-      (let [resp (rpcall make-github-request ((query-for :cursors-query) page-token))
+    (a/go-loop [page-cursor "" pages 1]
+      (let [params [:cursors-query search-str page-size page-cursor]
+            query (apply build-graphql-query params)
+            resp (with-rpcall (make-github-request query))
             errors (:errors resp)
             pageInfo (get-in resp [:body :data :search :pageInfo])
             {:keys [hasNextPage endCursor]} pageInfo]
 
-        (log/info "Github: fetching repositories with:" search-str page-token)
+        (log/info "Github: fetching repositories with query:" search-str page-cursor)
 
         (when endCursor (a/>! cursors-ch endCursor))
         (when errors (log/error "Github: Errors acquiring next cursor" errors))
@@ -235,64 +236,99 @@
           (recur endCursor (inc pages))
           (a/close! cursors-ch))))
 
-    (process-github-response-async (query-for :main-query) cursors-ch update-fn)))
+    cursors-ch))
+
+(defn search-github-and-process-async
+  "
+  Searches GitHub repositories with search string,
+  optionally processes results with update-fn (e.g. update in db).
+
+  Arguments:
+  - `search-str`: GitHub search string.
+  - `:page-size` (Number): Number of results per page.
+  - `:page-limit` (Number): Max number of pages to fetch.
+  - `:update-fn` (Function): Function to process each page of results.
+
+  Returns: a channel with normalized results
+  - `{:results [...], :errors [...], :rate-limit {...}}`
+  "
+  [search-str & {:keys [] :as args}]
+  (let [cursors-ch (fetch-search-cursors-async search-str args)]
+    (process-search-response-async search-str cursors-ch args)))
 
 (defn errors-summary
   "Formats errors summary by type and paths."
   [errors]
-
   (->> errors
+       (keep (fn [e]
+               (when-let [msg (:message e)]
+                 (assoc e :message
+                        (str (:path e) ":" (or (second (re-find #"'([^']+)'" msg)) msg))))))
        (group-by :type)
-       (map (fn [[type errors]]
-              [type (str/join "\n" (map #(str (:path %) ":" (second (re-find #"'(.+)'" (:message % ""))))
-                                        errors))]))
-       (map (fn [[type msgs]]
-              (str "Type: " type "\n" msgs)))
+       (map (fn [[type errors]] (format "Type: %s\n%s" (or type "none")
+                                        (str/join "\n" (map :message errors)))))
        (str/join "\n\n")))
 
-(defn log-update-results [result start-time]
+(defn log-update-results
+  [{:keys [time-elapsed total-results total-errors
+           errors-summary rate-limit-remaining]}]
+
+  (log/infof "Github: Updated TOTAL: %s repositories in %s s"
+             total-results time-elapsed)
+
+  (when (pos? total-errors)
+    (log/error "Github: Errors TOTAL during update" total-errors)
+    (when (seq errors-summary)
+      (log/error "Github: Errors Summary\n" errors-summary)))
+
+  (log/info "Github: Rate limit remaining:" rate-limit-remaining))
+
+(defn processed-results-stats [result start-time]
   (let [{:keys [results errors rate-limit]} result
         errors (remove empty? errors)]
-    (log/info "Github: Updated TOTAL:" (count results) "repositories in"
-              (/ (- (System/currentTimeMillis) start-time) 1000.0) "s")
 
-    (when (seq errors)
-      (log/error "Github: Errors TOTAL during update" (count errors))
-      (log/error "Github: Errors Summary\n" (errors-summary errors)))
+    {:time-elapsed (/ (- (System/currentTimeMillis) start-time) 1000.0)
+     :total-results (count results)
+     :total-errors (count errors)
+     :errors-summary (when (seq errors) (errors-summary errors))
+     :rate-limit-remaining (:remaining rate-limit)}))
 
-    (log/info "Github: Rate limit remaining:" (:remaining rate-limit))))
-
-(defn update-github-repos!
-  "Updates repositories in the database.
-   Splits search by year, to avoid hitting the max search results of 1000.
+(defn partition-search-by-year
+  "Generate search strings split by year ranges to avoid 
+   hitting GitHub search limit of 1000 results.
 
    Arguments:
-    - `search-str`: GitHub search string (default searches for Neovim plugins).
+    - `search-str`: GitHub search string.
 
-   Returns: `{:results [...], :errors [...], :page-info {...}, :rate-limit {...}}`
+   Returns: sequence of search strings split by year ranges, <16, 16 - next year."
+  [search-str]
+
+  (let [end-year (+ 1 (mod (.getYear (LocalDate/now)) 100))]
+    (conj
+     (map #(format "%s created:20%s-01-01..20%s-01-01" search-str % (inc %))
+          (range 16 end-year))
+     (format "%s created:<2016-01-01" search-str))))
+
+(defn search-and-add-repos!
+  "Searches for GitHub search string and adds GH repos to db.
+
+   Arguments:
+    - `search-strs`: list of GitHub search strings (default searches for Neovim plugins).
+
+   Returns: `{:results [...], :errors [...], :rate-limit {...}}`
    "
   ([]
-   (let [search-terms ["topic:neovim topic:plugin" "topic:nvim topic:plugin"
-                       "topic:neovim-plugin" "topic:nvim-plugin"]
-
-         end-year (+ 1 (mod (.getYear (java.time.LocalDate/now)) 100))
-         start-time (System/currentTimeMillis)
-         result-chs (mapcat (fn [term]
-                              (conj
-                               (map #(update-github-repos!
-                                      (format "%s created:20%s-01-01..20%s-01-01"
-                                              term % (inc %)))
-                                    (range 16 end-year))
-                               (update-github-repos! (format "%s created:<2016-01-01" term))))
-                            search-terms)]
+   (search-and-add-repos! ["topic:neovim topic:plugin" "topic:nvim topic:plugin"
+                           "topic:neovim-plugin" "topic:nvim-plugin"]))
+  ([search-strs]
+   (let [start-time (System/currentTimeMillis)
+         search-qrys (mapcat partition-search-by-year search-strs)
+         search-params {:page-size 100 :page-limit 10 :update-fn repo/upsert-repos!}
+         result-chs (map #(search-github-and-process-async % search-params) search-qrys)]
 
      (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} (a/merge result-chs)))
-       (log-update-results start-time))))
-
-  ([search-str]
-   (search-github-async search-str
-                        :page-size 100 :page-limit 1000
-                        :update-fn repo/upsert-repos!)))
+       (-> (processed-results-stats start-time)
+           (log-update-results))))))
 
 (defn create-from-awesome!
   "Creates a new repo from Awesome plugin data.
@@ -333,65 +369,58 @@
 
 (defn update-stars
   "Updates :stars_week every Sunday, :stars_month - on the 1st of each month."
-  [{:keys [stars] :as repo}]
+  [{:keys [stars] :as repo} & {:keys [today]}]
 
-  (let [now (LocalDate/now)
+  (let [now (or today (LocalDate/now))
         dow (.getDayOfWeek now)
         dom (.getDayOfMonth now)]
     (cond-> repo
-      (= "SUNDAY" (.name dow)) (assoc :stars_week stars)
+      (= "MONDAY" (.name dow)) (assoc :stars_week stars)
       (= 1 dom) (assoc :stars_month stars))))
 
 (defn process-github-data-async
-  "Processes GitHub data, updates repos in DB
+  "Processes GitHub data response, updates repos in DB
    and puts normalized response to `out-ch`.
 
    Arguments:
     - `resp`: response map `{:body {...} :errors [...]}`.
     - `out-ch`: output channel.
-   "
-  [resp out-ch]
-  (a/go
-    (let [resp-norm (normalize-github-data-response resp)
-          {:keys [results errors]} resp-norm]
-      (rpcall
-       (fn []
-         (doseq [repo results]
-           (-> repo
-               (update-stars)
-               (repo/upsert-repo!)))))
+    - `:update-fn`: function to process normalized results, (default updates repos in DB).
 
-      (log/info "Github: Updated data for" (count results) "repos")
-      (when errors
-        (log/warn "Github: Errors updating repos data" errors))
+   Returns: `out-ch` with normalized response
+   "
+  [resp out-ch & {:keys [update-fn]}]
+  (a/go
+    (when-let [resp-norm (with-rpcall (normalize-data-response resp))]
+      (let [{:keys [results errors]} resp-norm]
+        (doseq [repo results]
+          (with-rpcall
+            (if update-fn
+              (update-fn repo)
+              (-> repo (update-stars) (repo/upsert-repo!)))))
+
+        (log/info "Github: Updated data for" (count results) "repos")
+        (when errors
+          (log/warn "Github: Errors updating repos data" errors)))
 
       (a/>! out-ch resp-norm))
-    (a/close! out-ch)))
+    (a/close! out-ch))
 
-(defn update-github-data!
-  "Updates GitHub data for repos in the database.
+  out-ch)
+
+(defn process-data-queries-async
+  "Executes data queries from queries-ch,
+   normalizes responses and updates repos in DB.
 
    Arguments:
-    - `where`: update condition (default: non-hidden repos with GitHub URLs).
+    - `queries-ch`: channel with data queries.
 
-    Returns: `{:results [...], :errors [...], :page-info {...}, :rate-limit {...}}`
+   Returns: a channel with normalized responses
+   `{:results [...], :errors [...], :rate-limit {...}}`
    "
+  [queries-ch]
 
-  [& {:keys [where] :or {where [:and [:not= :hidden true]
-                                [:ilike :url "%github.com%"]]}}]
-  (let [queries-ch (a/chan) responses-ch (a/chan) results-ch (a/chan)
-        start-time (System/currentTimeMillis)]
-    (->>
-     (db/select :repos :where where)
-     (partition-all 100)
-     (map #(->> %
-                (reduce (fn [acc {:keys [id url]}]
-                          (let [[_ owner name] (re-matches #".+github\.com/([^/]+)/([^/#/?]+).*" url)]
-                            (str acc (format (:data-partial github-config) id owner name))))
-                        "")
-                (build-query (:data-template github-config))))
-     (a/onto-chan! queries-ch))
-
+  (let [responses-ch (a/chan) results-ch (a/chan)]
     (a/pipeline-async
      5 responses-ch
      (fn [query out-ch]
@@ -401,39 +430,77 @@
          (a/close! out-ch)))
      queries-ch)
 
-    (a/pipeline-async 3 results-ch process-github-data-async responses-ch)
+    (a/pipeline-async
+     3 results-ch
+     process-github-data-async
+     responses-ch)
 
-    (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} results-ch))
-      (log-update-results start-time))))
+    results-ch))
+
+(defn get-data-queries-for
+  "Generates data queries for given repos and puts them to queries-ch.
+
+   Arguments:
+    - `repos`: sequence of repo maps with `:id` and `:url`.
+
+   Returns: channel with generated queries.
+  "
+  [repos]
+  (->> repos
+       (keep (fn [{:keys [id url]}]
+               (when-let [[_ owner name] (re-matches #".+github\.com/([^/]+)/([^/#/?]+).*" url)]
+                 (format (:data-partial github-config) id owner name))))
+       (partition-all 100) ; Github allows up to 100 nodes per query
+       (map #(->> % (str/join "") (build-graphql-query :data-template)))
+       (a/to-chan!)))
+
+(defn update-repos-data!
+  "Updates data for GitHub repos in the database.
+
+   Arguments:
+    - `where`: update condition (default: non-hidden repos with GitHub URLs).
+
+    Returns: `{:results [...], :errors [...], :rate-limit {...}}`
+   "
+  [& {:keys [where] :or {where [:and [:not= :hidden true]
+                                [:ilike :url "%github.com%"]]}}]
+
+  (when-let [queries-ch (get-data-queries-for (db/select :repos :where where))]
+
+    (let [start-time (System/currentTimeMillis)
+          results-ch (process-data-queries-async queries-ch)]
+
+      (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} results-ch))
+        (-> (processed-results-stats start-time)
+            (log-update-results))))))
 
 (defn delete-duplicate-repos! []
-  (->> (concat
-        (repo/with-duplicate-urls)
-        (repo/with-duplicate-names)
-        (repo/renamed-repos))
-       (keep #(db/query-one! {:delete-from :repos
-                              :where [:and [:= :id %] [:= :topics "awesome"]]
-                              :returning [:id]}))
-       (count)
-       (log/info "Github: Deleted duplicate repositories:")))
+  (let [deleted (->> (concat
+                      (repo/with-duplicate-urls)
+                      (repo/with-duplicate-names)
+                      (repo/renamed-repos))
+                     (keep #(db/query-one! {:delete-from :repos
+                                            :where [:and [:= :id %] [:= :topics "awesome"]]
+                                            :returning [:id]})))]
+    (log/info "Github: Deleted duplicate repositories:" (count deleted))))
 
 (defn update-all!
   "Entry point to update all repos in DB."
   []
-  (rpcall
-   (fn []
-     (update-github-repos!)
-     (update-repos-from-awesome!)
-     (delete-duplicate-repos!)
-     (update-github-data!))))
+  (with-rpcall
+    (search-and-add-repos!)
+    (update-repos-from-awesome!)
+    (delete-duplicate-repos!)
+    (update-repos-data!)))
 
 (comment
   (update-all!)
+  (update-repos-data! :where [:in :id [10259 8306]])
+  (take 2 (db/select :repos))
   (map completing)
-  (a/<!! (search-github-async "lua-console"))
+  (a/<!! (search-github-and-process-async "lua-console"))
   (->> (db/select :repos)
        (mapcat #(str/split (:topics %) #" "))
        (frequencies)
        (sort-by val >)
        (take 40)))
-

@@ -7,9 +7,9 @@
    [nvim-app.components.database :as database-component]
    [nvim-app.components.sched :as sched-component]
    [nvim-app.components.repl :as repl-component]
+   [nvim-app.utils :refer [ex-format]]
    [com.stuartsierra.component :as component]
-   [clojure.tools.logging :as log]
-   [nvim-app.utils :refer [ex-format]]))
+   [clojure.tools.logging :as log]))
 
 (defn nvim-database-system [config]
   (component/system-map
@@ -42,15 +42,3 @@
     (catch Exception e
       (log/error "Failed to start system component\n" (ex-format e))
       (component/stop (:system (ex-data e))))))
-
-(comment
-  (require 'nvim-app.state)
-  (-main)
-  (component/stop-system @nvim-app.state/app-system-atom)
-  "
-```http
-https://nvim.app/repos-page?q=yarospace
-Accept: application/json
-
-```
-")

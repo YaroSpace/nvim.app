@@ -4,6 +4,7 @@
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
    [nvim-app.db.user :as users]
+   [nvim-app.components.pedestal.specs :as specs]
    [nvim-app.views.repos :as repos]
    [nvim-app.views.news :as news]
    [nvim-app.views.about :as about]
@@ -11,8 +12,8 @@
    [nvim-app.views.not-found :as not-found]
    [nvim-app.utils :as u]
    [io.pedestal.http.route :as route :refer [url-for]]
+   [clojure.spec.alpha :as s]
    [clojure.string :as str]))
-   ; [schema.core :as s]
 
 (defn response
   ([status]
@@ -35,6 +36,13 @@
          {:status 404
           :headers {"Content-Type" "text/html"}
           :body (not-found/index)}))
+
+(defn invalid-params [context message]
+  (assoc context
+         :request (assoc-in (:request context)
+                            [:accept :field] "application/json")
+         :response {:status 400
+                    :body {:errors {:message message}}}))
 
 (def news-index
   {:name :news-index
@@ -92,26 +100,31 @@
    :enter
    (fn [{:keys [request] :as context}]
      (let [{:keys [query-params accept user]} request
-           {:keys [q category sort page limit]} query-params
+           conformed-params (s/conform ::specs/repos-page-params query-params)]
 
-           page   (parse-long (or (not-empty page) "1"))
-           limit  (parse-long (or (not-empty limit) "10"))
-           offset (* (dec page) limit)
+       (if (s/invalid? conformed-params)
+         (invalid-params context (str "Invalid query parameters: "
+                                      (specs/format-problems
+                                       ::specs/repos-page-params query-params)))
 
-           matched (repo/search-repos q category sort offset limit user)
-           categories (into (sorted-set) (map :name (db/select :categories)))
-           total  (int (Math/ceil (/ (:total (first matched) 1) limit)))]
+         (let [{:keys [q category sort page limit]
+                :or {page 1 limit 10}} conformed-params
 
-       (assoc context :response
-              {:status  200
-               :body (cond
-                       (= (:field accept) "application/json") matched
-                       :else (repos/plugins-list request
-                                                 matched
-                                                 (assoc query-params
-                                                        :categories categories
-                                                        :total total
-                                                        :page page :limit limit)))})))})
+               offset (* (dec page) limit)
+               matched (repo/search-repos q category sort offset limit user)
+               categories (into (sorted-set) (map :name (db/select :categories)))
+               total  (int (Math/ceil (/ (:total (first matched) 1) limit)))]
+
+           (assoc context :response
+                  {:status  200
+                   :body (if (= (:field accept) "application/json")
+                           matched
+                           (repos/plugins-list request
+                                               matched
+                                               (assoc query-params
+                                                      :categories categories
+                                                      :total total
+                                                      :page page :limit limit)))})))))})
 
 (def github-login
   {:name :github-login

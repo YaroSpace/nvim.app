@@ -58,7 +58,9 @@
    Returns: [{:category, :repo, :url, :description}, ...] or nil on failure.
   "
   []
-  (parse-readme (or (fetch-readme) "")))
+  (-> (fetch-readme)
+      (or "")
+      (parse-readme)))
 
 (comment
   (re-matches #"https://[^/].+/(.+/.+)$" "https://git.sr.ht/~whynothugo/lsp_lines.nvim")

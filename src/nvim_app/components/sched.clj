@@ -8,7 +8,7 @@
    [clojure.tools.logging :as log])
   (:import
    [java.util.concurrent Executors TimeUnit ScheduledThreadPoolExecutor]
-   [java.time Instant Duration]
+   [java.time Instant]
    [java.util Date]))
 
 (defn schedule-task [scheduler task interval]
@@ -20,12 +20,10 @@
   (github/update-all!))
 
 (defn update-previews! []
-  (when-not (some->
-             (:last-preview-update (app/get-data))
-             (Instant/parse)
-             (Duration/between (Instant/now))
-             (.toDays)
-             (< 7))
+  (when (some->
+         (:last-preview-update (app/get-data))
+         (Instant/parse)
+         (u/older-than? 7))
 
     (log/info "Scheduler: Updating previews")
     (u/update-previews!)

@@ -9,7 +9,6 @@ Plugin data is available as JSON from:
 ```
 https://nvim.app/repos-page?
   &q=search_string
-  &group=group_name
   &sort=sort_name
   &category=category_name
   &limit=results_per_page

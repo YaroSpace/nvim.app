@@ -45,15 +45,19 @@
       (try
         (let [^HikariDataSource ds (make-datasource config)
               ds-with-opts (jdbc/with-options ds {:builder-fn rs/as-unqualified-maps})]
+          (try
+            (db/run-migrations! {:datasource ds})
+            (assoc this
+                   :raw-ds ds
+                   :datasource (if (:logging? config)
+                                 (jdbc/with-logging ds-with-opts db-logger db-logger)
+                                 ds-with-opts))
+            (catch Exception e
+              (.close ^HikariDataSource ds)
+              (throw e))))
 
-          (db/run-migrations! {:datasource ds})
-          (assoc this
-                 :raw-ds ds
-                 :datasource (if (:logging? config)
-                               (jdbc/with-logging ds-with-opts db-logger db-logger)
-                               ds-with-opts)))
         (catch Exception e
-          (throw (ex-info "Failed to start database component" e))))))
+          (throw (ex-info "Failed to start database component" {:message (ex-message e)} e))))))
 
   (stop [this]
     (log/info "Stopping DatabaseComponent")

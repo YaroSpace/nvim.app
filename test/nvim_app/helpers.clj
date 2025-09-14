@@ -1,12 +1,15 @@
 (ns nvim-app.helpers
   (:require
+   [nvim-app.state :refer [app-system-atom]]
    [nvim-app.core :refer [nvim-app-system nvim-database-system]]
+   [nvim-app.components.app :refer [reset-state!]]
    [nvim-app.components.pedestal.routes :as r]
    [nvim-app.integration.fixtures :as fixtures]
    [nvim-app.db.core :as db]
    [io.pedestal.http.route :as route]
    [com.stuartsierra.component :as component]
    [cheshire.core :as json]
+   [clojure.tools.logging :as log]
    [clojure.string :as str])
 
   (:import
@@ -62,16 +65,20 @@
 
 (defmacro with-system
   [[bound-var system] & body]
-  `(let [database-container# (get-database-container)]
+  `(let [current-system# @app-system-atom
+         database-container# (get-database-container)]
      (try
        (.start database-container#)
+       (~`log/info "Starting test system:" ~(name system))
        (let [~bound-var (component/start (get-system ~system database-container#))]
          (try
            ~@body
            (finally
              (component/stop ~bound-var))))
        (finally
-         (.stop database-container#)))))
+         (.stop database-container#)
+         (when current-system#
+           (reset-state! current-system#))))))
 
 (defmacro with-test-system
   [bound-var & body]
