@@ -8,6 +8,5 @@
     (json/parse-string (:data data) true)))
 
 (defn save-data! [data]
-  (db/update! :app
-              :values {:data [:cast (json/generate-string data) :jsonb]}
+  (db/update! :app {:data [:cast (json/generate-string data) :jsonb]}
               :where [:= :id 1]))

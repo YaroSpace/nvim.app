@@ -3,8 +3,9 @@
    [nvim-app.config :as config]
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
+   [nvim-app.specs :as specs]
    [nvim-app.awesome :as awesome]
-   [nvim-app.utils :refer [fetch-request with-rpcall]]
+   [nvim-app.utils :refer [fetch-request with-rpcall pretty-format]]
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.core.async :as a]
@@ -99,7 +100,7 @@
        (update-fn search-normalized))
 
      (when errors
-       (log/warn "Github: Errors downloading repo data" errors))
+       (log/warn "Github: Errors downloading repo data\n" (pretty-format errors)))
 
      {:results search-normalized :errors errors
       :page-info pageInfo :rate-limit rate-limit})))
@@ -148,10 +149,8 @@
 
       (if (and delay (< attempt retries))
         (do
-          (log/warn "Retrying request #" attempt "in" (/ delay 1000) "s due to errors:"
-                    (:message body) errors)
-          (log/warnf "Retrying request #%s in %ss due to errors: %s %s"
-                     attempt (/ delay 1000) (:message body) errors)
+          (log/warnf "Retrying request #%s in %ss due to errors: %s\n%s"
+                     attempt (/ delay 1000) (:message body) (pretty-format errors))
           (a/<! (a/timeout (* attempt delay)))
           (recur (inc attempt)))
 
@@ -230,7 +229,7 @@
         (log/info "Github: fetching repositories with query:" search-str page-cursor)
 
         (when endCursor (a/>! cursors-ch endCursor))
-        (when errors (log/error "Github: Errors acquiring next cursor" errors))
+        (when errors (log/error "Github: Errors acquiring next cursor\n" (pretty-format errors)))
 
         (if (and hasNextPage (< pages page-limit))
           (recur endCursor (inc pages))
@@ -337,17 +336,14 @@
   
     Returns: update result map.
   "
-
-  [{:keys [repo url description category-id]}]
-
-  (let [[owner name] (str/split repo #"/")]
-    (repo/upsert-repo!
-     {:owner owner
-      :name (or name owner)
-      :url (or url "")
-      :description (or description "")
-      :topics ["awesome"]
-      :category_id category-id})))
+  [plugin]
+  (let [[owner name] (str/split (:repo plugin) #"/")]
+    (-> plugin
+        (merge {:owner owner
+                :name (or name owner)
+                :topics ["awesome"]})
+        (dissoc :category)
+        (repo/upsert-repo!))))
 
 (defn update-repos-from-awesome!
   "Updates GitHub repos from the Awesome list.
@@ -358,11 +354,11 @@
               (let [[_ owner name] (re-matches #".+github.com/([^/]+)/([^/#/?]+).*" url)
                     repo-id (:id (db/select-one :repos :where [:ilike :url (str "%github.com/" owner "/" name "%")]))
                     category-id (:id (or (db/select-one :categories :name category)
-                                         (db/insert! :categories :values [{:name category}])))]
+                                         (and (specs/conform! :category/name category)
+                                              (db/insert! :categories [{:name category}]))))]
                 (if repo-id
-                  (db/update! :repos
-                              :where [:and [:= :id repo-id] [:= :dirty false]]
-                              :values {:category_id category-id})
+                  (db/update! :repos {:category_id category-id}
+                              :where [:and [:= :id repo-id] [:= :dirty false]])
                   (create-from-awesome! (assoc plugin :category-id category-id))))))
        (count)
        (log/info "Github: Updated repositories from Awesome:")))
@@ -401,7 +397,7 @@
 
         (log/info "Github: Updated data for" (count results) "repos")
         (when errors
-          (log/warn "Github: Errors updating repos data" errors)))
+          (log/warn "Github: Errors updating repos data\n" (pretty-format errors))))
 
       (a/>! out-ch resp-norm))
     (a/close! out-ch))

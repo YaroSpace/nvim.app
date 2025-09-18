@@ -16,6 +16,7 @@
   (:import [java.time Instant Duration]))
 
 (defn older-than?
+  ; TODO: use hours and config
   "Checks if given instant is older than specified number of days from now"
   [^Instant instant days]
   (-> instant
@@ -39,24 +40,38 @@
       (strip-trace)
       (assoc :trace (.getStackTrace ex))))
 
-(defn ex-format [ex]
+(defn pretty-format [x]
   (with-out-str
-    (pprint/pprint (ex-short ex))))
+    (pprint/pprint x)))
+
+(defn ex-format [ex]
+  (pretty-format
+   (ex-short ex)))
 
 (defmacro with-pcall
   "Protected call, returns [success?, result of body or formatted exception]
-   Logs errors on failure"
+
+   Arguments:
+     - `:silent` - if true, does not log errors (default false)
+     - `body` - body to execute
+  "
   [& body]
-  `(try
-     (let [result# (do ~@body)]
-       [true result#])
-     (catch Exception e#
-       (log/errorf "Error during pcall: %s" (ex-format e#))
-       [false (ex-short e#)])))
+  (let [silent?# (= :silent (first body))
+        body (if silent?# (rest body) body)]
+    `(try
+       (let [result# (do ~@body)]
+         [true result#])
+       (catch Exception e#
+         (when-not ~silent?# (log/errorf "Error during pcall: %s" (ex-format e#)))
+         [false (ex-short e#)]))))
 
 (defmacro with-rpcall
   "Protected call, returns result of body or `nil`.
-   Logs errors on failure"
+
+   Arguments:
+     - `:silent` - if true, does not log errors (default false)
+     - `body` - body to execute
+     "
   [& body]
   `(let [[success?# result#] (with-pcall ~@body)]
      (when success?# result#)))
@@ -70,7 +85,7 @@
      (json/parse-string data true)
      (catch Exception e
        (when (:verbose opts)
-         (log/error (str "Failed to parse JSON: " data " - " (ex-message e))))))))
+         (log/error (str "Failed to parse JSON: " data " - " (ex-format e))))))))
 
 (defn markdown->html [text]
   (raw (md/md-to-html-string text)))
@@ -82,6 +97,12 @@
             (str/join "\n"))
        "..."))
 
+(def default-request-params
+  {:method :get
+   :url ""
+   :headers {"User-Agent" "nvim-app"}
+   :throw-exceptions true})
+
 (defn fetch-request
   "
   Makes request using clj-http.client.
@@ -92,36 +113,51 @@
   Arguments:
     - `request` - request map, 
     - `:verbose` - log errors (default false)
+    - `:throw-exceptions` - throw on errors (default false)
 
   Returns: `{:status, :body, :errors}`.
   "
-  [request & {:keys [verbose] :or {verbose false}}]
-
+  [request & {:keys [verbose throw-exceptions]
+              :or {verbose false throw-exceptions false}}]
   (try
-    (let [{:keys [status headers body] :as resp} (http/request request)
-          json (or (json-parse body) body)]
-      {:status status
-       :headers headers
-       :body json
-       :errors (:errors json)
-       :response resp})
+    (let [request* (merge default-request-params request)
+          {:keys [status headers body] :as resp} (http/request request*)
+          json (or (json-parse body) body)
+          response {:status status
+                    :headers headers
+                    :body json
+                    :errors (or (:errors json)
+                                (when-let [error (:error json)]
+                                  {:message error}))
+                    :response resp}]
+
+      (if (and (:errors response) throw-exceptions)
+        (throw (ex-info "HTTP request errors" response))
+        response))
 
     (catch Exception e
-      (let [{:keys [status reason-phrase headers body]} (ex-data e)
+      (let [{:keys [status reason-phrase headers body errors]} (ex-data e)
             json (or (json-parse body) body)
-            resp {:status status
-                  :errors {:message (or (get-in json [:errors :message])
-                                        (ex-message e))
-                           :reason reason-phrase}
-                  :headers headers
-                  :body (or json body)}]
+            response {:status status
+                      :headers headers
+                      :body json
+                      :errors (or errors {:reason reason-phrase
+                                          :message (or (get-in json [:errors :message])
+                                                       (:message json)
+                                                       (ex-message e))})}]
 
-        (when verbose
-          (log/error (str "Failed to fetch request: "
-                          status " " (select-keys resp [:status :errors :body])))
-          (tap> resp)
-          (tap> e))
-        resp))))
+        (let [errors (-> response
+                         (assoc :url (:url request))
+                         (dissoc :headers))]
+          (when verbose
+            (log/errorf "Failed to fetch request: \n%s" (pretty-format errors))
+            (tap> response)
+            (tap> e))
+
+          (when throw-exceptions
+            (throw (ex-info "HTTP request errors" errors e))))
+
+        response))))
 
 (def driver nil)
 (defn driver-opts []
@@ -150,7 +186,7 @@
          file (io/file filename)]
      (or
       (and (-> file .exists)
-           (> 40000 (-> file .length))
+           (> 40000 (-> file .length)) ; file is too small if preview incomplete
            (not (preview-stale? id))
            (not force-update))
 

@@ -1,9 +1,9 @@
 (ns nvim-app.unit.utils-test
   (:require
-   [clojure.test :refer [deftest testing is]]
    [nvim-app.utils :refer :all]
-   [clj-http.fake :as fake :refer [with-fake-routes-in-isolation]]
-   [nvim-app.helpers :refer [to-json] :as h]))
+   [nvim-app.helpers :refer [to-json] :as h]
+   [clj-http.fake :refer [with-fake-routes-in-isolation]]
+   [clojure.test :refer [deftest testing is]]))
 
 (deftest fetch-request-test
   (testing "success, json response"

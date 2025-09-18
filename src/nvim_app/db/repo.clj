@@ -1,20 +1,21 @@
 (ns nvim-app.db.repo
   (:require
    [nvim-app.db.core :as db]
+   [nvim-app.specs :as specs]
    [honey.sql.pg-ops :refer [atat]]
-   [clojure.instant :as inst]
    [clojure.string :as str]
    [clojure.tools.logging :as log]))
 
 (defn order-by [sort]
   (if (str/blank? sort) []
       (case sort
+        "name" []
         "stars" [[:stars :desc]]
         "stars_week" [[[:- :stars :stars_week] :desc]]
         "stars_month" [[[:- :stars :stars_month] :desc]]
         "updated" [[:updated :desc]]
         "created" [[:created :desc]]
-        :else [:stars :desc])))
+        [[:stars :desc]])))
 
 (defn user-watched [user]
   (let [watched (:watched (db/select-one :users :id (:id user)))]
@@ -44,39 +45,15 @@
       limit (assoc :limit limit)))))
 
 (defn upsert-repo! [repo]
-  (let [{:keys [name owner description archived
-                stars stars_week stars_month
-                topics created updated]} repo
-        default-date (inst/read-instant-timestamp "1970-01-01")]
-
+  (let [conformed-repo (specs/conform! ::specs/repo repo)]
     (db/query-one!
-     (let [-description (or description "")
-           -stars (or stars 0)
-           -topics (str/join " " (or topics ""))
-           -archived (or archived false)
-           -created (or created default-date)
-           -updated (or updated default-date)]
-
-       {:insert-into :repos
-        :values [(assoc repo  :repo (str owner "/" name)
-                        :description -description
-                        :stars -stars
-                        :stars_week 10000
-                        :stars_month 10000
-                        :topics -topics
-                        :archived -archived
-                        :created -created
-                        :updated -updated)]
-
-        :on-conflict [:repo]
-        :do-update-set (cond-> {:topics -topics
-                                :updated -updated
-                                :created -created
-                                :archived -archived
-                                :description -description
-                                :stars -stars}
-                         stars_week (assoc :stars_week stars_week)
-                         stars_month (assoc :stars_week stars_month))}))))
+     {:insert-into :repos
+      :values [conformed-repo]
+      :on-conflict [:repo]
+      :do-update-set (select-keys conformed-repo
+                                  [:description :topics
+                                   :stars :stars_week :stars_month
+                                   :updated :archived])})))
 
 (defn upsert-repos! [repos]
   (let [result (for [repo repos]

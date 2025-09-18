@@ -1,7 +1,7 @@
-(ns nvim-app.views.repos-compact
+(ns nvim-app.components.pedestal.views.repos-compact
   (:require
-   [nvim-app.views.assets :refer :all]
-   [nvim-app.views.repos-shared :refer :all]
+   [nvim-app.components.pedestal.views.assets :refer :all]
+   [nvim-app.components.pedestal.views.repos-shared :refer :all]
    [io.pedestal.http.route :refer [url-for]]))
 
 (defn compact-table-header []

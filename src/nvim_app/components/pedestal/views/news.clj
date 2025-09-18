@@ -1,5 +1,5 @@
-(ns nvim-app.views.news
-  (:require [nvim-app.views.layout :refer [base-layout]]))
+(ns nvim-app.components.pedestal.views.news
+  (:require [nvim-app.components.pedestal.views.layout :refer [base-layout]]))
 
 (defn index [request]
   (base-layout

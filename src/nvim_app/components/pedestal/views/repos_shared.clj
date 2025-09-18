@@ -1,5 +1,5 @@
-(ns nvim-app.views.repos-shared
-  (:require [nvim-app.views.assets :refer :all]
+(ns nvim-app.components.pedestal.views.repos-shared
+  (:require [nvim-app.components.pedestal.views.assets :refer :all]
             [io.pedestal.http.route :refer [url-for]]
             [clojure.string :as str]))
 
@@ -70,7 +70,7 @@
 (defn watch-button [repo-id repo watched]
   [:button {:title (if watched "Remove from watchlist" "Add to watchlist")
             :name "repo" :value repo :type "button"
-            :class (str "flex items-center pl-2 space-x-1 cursor-pointer "
+            :class (str "repo-watch flex items-center pl-2 space-x-1 cursor-pointer "
                         (if watched "text-blue-500" "text-brand"))
             :hx-put "/user/watch" :hx-target repo-id :hx-include hx-include-with-page
             :hx-select repo-id :hx-swap "outerHTML"}
@@ -85,13 +85,13 @@
 
 (defn edit-button [repo-id repo]
   [:button {:title "Edit" :name "edit" :value repo :type "button"
-            :class "flex items-center pl-2 space-x-1 cursor-pointer text-brand"
+            :class "repo-edit flex items-center pl-2 space-x-1 cursor-pointer text-brand"
             :hx-get (url-for :repos-page) :hx-include hx-include-with-page
             :hx-select repo-id :hx-target repo-id :hx-swap "outerHTML"}
    (edit-icon)])
 
-(defn star [number icon color title]
+(defn star [number icon css title]
   (when (pos? number)
-    [:div {:title title :class (str "flex items-center " color)}
+    [:div {:title title :class (str "flex items-center " css)}
      (icon)
      [:span {:class "text-brand-strong"} (number->str number)]]))

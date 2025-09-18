@@ -5,7 +5,7 @@
    [clojure.test :refer :all]
    [nvim-app.utils :refer [json-parse]]
    [nvim-app.db.core :as db]
-   [nvim-app.helpers :refer [with-database-system]]))
+   [nvim-app.helpers :refer [with-database-system silence-logging!]]))
 
 (defn drain-channel [ch]
   (loop [results []]
@@ -328,13 +328,8 @@
 
 (deftest update-repos-from-awesome!-test)
 
-(defn silence-logging []
-  (when (find-ns 'user)
-    ((resolve 'user/set-log-level!) "migratus.core" :warn)
-    ((resolve 'user/set-log-level!) "migratus.database" :warn)))
-
 (deftest create-from-awesome!-test
-  (silence-logging)
+  (silence-logging!)
 
   (with-database-system sut
     (let [ds (:database-component sut)

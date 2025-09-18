@@ -3,7 +3,7 @@
    [nvim-app.state :refer [dev?]]
    [nvim-app.db.core :as db]
    [nvim-app.components.pedestal.routes :as r]
-   [nvim-app.components.pedestal.handlers :as h]
+   [nvim-app.components.pedestal.handlers.core :as h]
    [nvim-app.utils :refer [ex-format]]
    [com.stuartsierra.component :as component]
    [io.pedestal.http :as http]
@@ -23,18 +23,23 @@
 (add-encoder PGobject encode-str)
 
 (def CSP-policy
-  (str/join
-   "; "
-   ["default-src 'self'"
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com 
-                   https://*.googletagmanager.com"
+  (->
+   (str/join
+    "; "
+    ["default-src 'self'"
+     "script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+      https://www.googletagmanager.com https://*.googletagmanager.com"
 
-    "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com 
-                   https://*.googletagmanager.com https://github.com"
+     "connect-src 'self' 
+      https://*.google-analytics.com https://*.analytics.google.com 
+      https://*.googletagmanager.com https://github.com"
 
-    "img-src 'self' https://*.google-analytics.com https://*.googletagmanager.com 
-                   https://*.githubusercontent.com"
-    "style-src 'self' 'unsafe-inline'"]))
+     "img-src 'self' 
+      https://*.google-analytics.com https://*.googletagmanager.com 
+      https://*.githubusercontent.com"
+
+     "style-src 'self' 'unsafe-inline'"])
+   (str/replace #"\s+" " ")))
 
 (def csp-interceptor
   (interceptor/interceptor
@@ -78,7 +83,8 @@
 (def not-found-interceptor
   {:name :not-found
    :leave (fn [context]
-            (let [url-for-fn (delay (route/url-for-routes r/routes))]
+            (let [url-for-fn (delay (route/url-for-routes
+                                     (route/expand-routes r/routes)))]
               (if (-> context :response :status)
                 context
                 (with-bindings {#'route/*url-for* url-for-fn}
@@ -120,7 +126,8 @@
    {:name ::enrich-request
     :enter (fn [{:keys [request] :as context}]
              (let [{:keys [session query-params]} request
-                   query-params (or query-params (:query-params session))]
+                   query-params (or query-params (:query-params session))
+                   query-params (dissoc query-params nil)] ; remove nil keypedescs
                (assoc context :request
                       (merge request
                              {:query-params query-params
@@ -135,6 +142,7 @@
                                 (:session response)
                                 {:query-params (or query-params (:query-params session))}
                                 (select-keys request [:mode :view])))))}))
+
 (defn cookie-params [config]
   {:cookie-name "nvim-app-session"
    :store (cookie-store (when (string? (:cookie-key config))
@@ -143,7 +151,7 @@
                   :http-only true :secure true}})
 
 (defn service-map [config]
-  {::http/routes r/routes
+  {::http/routes (route/routes-from r/routes)
    ::http/resource-path "/public"
    ::http/file-path "/app/web/public"
    ::http/type :jetty

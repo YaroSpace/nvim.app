@@ -1,4 +1,4 @@
-(ns nvim-app.views.samples)
+(ns nvim-app.components.pedestal.views.samples)
 
 (def sample-plugins
   [{:url "https://github.com/NStefan002/15puzzle.nvim"

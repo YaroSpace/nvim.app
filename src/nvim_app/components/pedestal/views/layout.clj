@@ -1,8 +1,8 @@
-(ns nvim-app.views.layout
+(ns nvim-app.components.pedestal.views.layout
   (:require
    [nvim-app.state :refer [dev? app-config]]
-   [nvim-app.views.assets :refer :all]
-   [nvim-app.views.repos-shared :refer [el-with]]
+   [nvim-app.components.pedestal.views.assets :refer :all]
+   [nvim-app.components.pedestal.views.repos-shared :refer [el-with]]
    [io.pedestal.http.route :refer [url-for]]
    [hiccup.page :refer [html5 include-js include-css]]
    [hiccup2.core :refer [raw]]))
@@ -56,12 +56,13 @@
 
 (defn user-login [user]
   (if-not user
-    [:a {:title "Login with GitHub" :href (url-for :github-login)}
-
+    [:a {:class "github-login" :title "Login with GitHub"
+         :href (url-for :github-login)}
      (github-icon)]
 
     [:div {:class "w-8 h-8 rounded-full overflow-hidden"}
-     [:a {:href (:url user) :class "block w-full h-full"}
+     [:a {:class "github-login block w-full h-full"
+          :href (:url user)}
       [:img {:src (:avatar_url user)}]]]))
 
 (defn header [{:keys [user]}]
