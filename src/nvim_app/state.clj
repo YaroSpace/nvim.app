@@ -5,4 +5,4 @@
 (defonce dev? false)
 
 (defn alter-in-app-config! [path value]
-  (alter-var-root #'app-config #(assoc-in % path value)))
+  (alter-var-root #'app-config assoc-in path value))

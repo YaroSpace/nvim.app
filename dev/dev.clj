@@ -26,5 +26,5 @@
       (component-repl/stop))))
 
 (comment
-  (:app component-repl/system)
+  (:pedestal-component component-repl/system)
   (component-repl/stop))

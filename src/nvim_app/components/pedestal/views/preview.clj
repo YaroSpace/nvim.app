@@ -1,4 +1,4 @@
-(ns nvim-app.views.preview
+(ns nvim-app.components.pedestal.views.preview
   (:require [hiccup2.core :refer [html]]))
 
 (defn index [id]

@@ -1,4 +1,4 @@
-(ns nvim-app.views.assets)
+(ns nvim-app.components.pedestal.views.assets)
 
 (defn star-icon []
   [:svg {:class "w-4 h-4" :fill "currentColor" :viewBox "0 0 20 20"}
@@ -114,8 +114,8 @@
           [:path {:stroke-linecap "round" :stroke-linejoin "round"
                   :d "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"}]]
          [:div {:class "flex-1"}
-          [:strong {:class "font-medium"} (:title message)]
-          [:p {:class "mt-0.5 text-sm"} (:message message)]]
+          [:strong {:class "alert-title font-medium"} (:title message)]
+          [:p {:class "alert-message mt-0.5 text-sm"} (:message message)]]
          [:button {:class "rounded-full transition-colors hover:bg-gray-50"
                    :type "button" :aria-label "Dismiss alert"
                    :onClick "document.getElementById('alert-box').classList.add('hidden');"}

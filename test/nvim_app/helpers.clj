@@ -1,5 +1,6 @@
 (ns nvim-app.helpers
   (:require
+   [nvim-app.config :as config]
    [nvim-app.state :refer [app-system-atom]]
    [nvim-app.core :refer [nvim-app-system nvim-database-system]]
    [nvim-app.components.app :refer [reset-state!]]
@@ -10,7 +11,9 @@
    [com.stuartsierra.component :as component]
    [cheshire.core :as json]
    [clojure.tools.logging :as log]
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [etaoin.api :as e]
+   [lazytest.core :refer [around]])
 
   (:import
    [org.testcontainers.containers PostgreSQLContainer]))
@@ -21,11 +24,13 @@
 (defn sut->url
   [sut path]
   (str/join ["http://localhost:"
-             (-> sut :app :pedestal-component :config :port)
+             (-> sut :pedestal-component :config :port)
              path]))
 
 (def get-url-for
-  (route/url-for-routes r/routes))
+  (-> r/routes
+      (route/expand-routes)
+      (route/url-for-routes)))
 
 (defn get-sut-url-for
   ([sut route]
@@ -61,7 +66,9 @@
    :db-spec (get-container-db-spec database-container)})
 
 (defn get-system [system database-container]
-  (system (get-config database-container)))
+  (let [config (config/read-config {:profile :test})]
+    (system (merge config
+                   (get-config database-container)))))
 
 (defmacro with-system
   [[bound-var system] & body]
@@ -102,7 +109,7 @@
          :response
          :body))))
 
-(defn setup-fixtures [sut]
+(defn setup-fixtures! [sut]
   (let [ds (:database-component sut)]
     (db/query-one! ds
                    {:insert-into :categories
@@ -110,3 +117,61 @@
     (db/query-one! ds
                    {:insert-into :repos
                     :values fixtures/plugins})))
+
+(defn silence-logging! []
+  (when (find-ns 'user)
+    ((resolve 'user/set-log-level!) "migratus.core" :warn)
+    ((resolve 'user/set-log-level!) "migratus.database" :warn)))
+
+(defmacro with-driver
+  "
+  Binds common etaoin functions to use without namespace 
+  and with the provided driver within the body.
+
+  Arguments:
+   `driver` - an atom containing the etaoin driver
+   `body` - the body to execute with the bound functions
+
+  Example usage:
+  ```clojure
+   (with-driver driver
+     (click {:fn/has-id \"submit-button\"})
+  ```
+  "
+  [driver & body]
+  (let [wrap-fns# [#'e/get-element-text #'e/get-element-text-el
+                   #'e/get-element-value #'e/get-element-value-el
+                   #'e/query #'e/query-all #'e/query-from
+                   #'e/click #'e/fill #'e/wait]]
+    `(letfn [~@(map (fn [fn]
+                      (let [local-name (symbol (name (symbol (str fn))))]
+                        `(~local-name [& args#] (apply ~fn @~driver args#))))
+                    wrap-fns#)]
+       ~@body)))
+
+(defn setup-browser! [driver headless?]
+  (let [driver* (e/use-css (e/chrome {:headless headless?}))]
+    (reset! driver driver*)
+    (e/set-window-size driver* {:width 1280 :height 800})))
+
+(defn setup-sut!
+  "
+  Sets up the system under test (SUT), seeds fixtures into DB,
+  starts browser driver for integration tests, silences logging.
+
+  Arguments:
+    `sut` - an atom to hold the system under test
+    `driver` - an atom to hold the etaoin driver
+    `headless` - boolean indicating whether to run the browser in headless mode (default: true)
+  "
+  [sut driver & {:keys [headless?] :or {headless? true}}]
+  (around [f]
+    (silence-logging!)
+    (with-test-system sut*
+      (reset! sut sut*)
+      (setup-fixtures! sut*)
+      (setup-browser! driver headless?)
+      (f)
+      (when headless?
+        (e/quit @driver)
+        (reset! driver nil)))))

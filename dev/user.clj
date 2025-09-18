@@ -9,10 +9,10 @@
    [hashp.preload]
    [hashp.config]
    [user.java :refer :all]
-   [kaocha.repl :as k]
    [clojure.test :as test]
    [clojure.tools.logging :as log]
    [clojure.string :as str])
+   ; [kaocha.repl :as k]
 
   (:import
    [ch.qos.logback.classic Level]
@@ -60,8 +60,9 @@
     (catch Exception _)))
 
 (defn reset []
-  (repl/refresh))
-  ; (system-reset))
+  (repl/refresh)
+  (hashp-setup)
+  (system-reset))
 
 (defn set-log-level! [logger-name level]
   (let [logger (LoggerFactory/getLogger logger-name)]
@@ -124,14 +125,14 @@
       (log/fatal (ex-format x)))))
 
 (defn setup-user []
-  ; (repl/disable-reload! (the-ns 'user))
+  (repl/disable-reload! (the-ns 'user))
   ; (repl/disable-reload! (the-ns 'dev))
 
   (patch-rebel-readline)
   (hashp-setup)
   ; (portal-start))
 
-  (remove-tap pretty-exceptions-tap-handler)
+  ; (remove-tap pretty-exceptions-tap-handler))
   (add-tap pretty-exceptions-tap-handler))
 
 (setup-user)

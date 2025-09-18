@@ -1,6 +1,6 @@
-(ns nvim-app.views.about
+(ns nvim-app.components.pedestal.views.about
   (:require
-   [nvim-app.views.layout :refer [base-layout]]
+   [nvim-app.components.pedestal.views.layout :refer [base-layout]]
    [nvim-app.utils :as u]
    [clojure.java.io :as io]))
 

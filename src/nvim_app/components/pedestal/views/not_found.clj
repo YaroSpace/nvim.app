@@ -1,5 +1,5 @@
-(ns nvim-app.views.not-found
-  (:require [nvim-app.views.layout :refer [base-layout]]))
+(ns nvim-app.components.pedestal.views.not-found
+  (:require [nvim-app.components.pedestal.views.layout :refer [base-layout]]))
 
 (defn index []
   (base-layout

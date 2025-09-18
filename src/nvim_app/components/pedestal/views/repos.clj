@@ -1,9 +1,9 @@
-(ns nvim-app.views.repos
+(ns nvim-app.components.pedestal.views.repos
   (:require
-   [nvim-app.views.assets :refer :all]
-   [nvim-app.views.layout :refer [base-layout]]
-   [nvim-app.views.repos-compact :as compact]
-   [nvim-app.views.repos-shared :refer :all]
+   [nvim-app.components.pedestal.views.assets :refer :all]
+   [nvim-app.components.pedestal.views.layout :refer [base-layout]]
+   [nvim-app.components.pedestal.views.repos-compact :as compact]
+   [nvim-app.components.pedestal.views.repos-shared :refer :all]
    [io.pedestal.http.route :refer [url-for]]
    [hiccup2.core :refer [html]]
    [hiccup.page :refer [include-js]]
@@ -65,10 +65,10 @@
   [:div {:class "relative"}
    [:div {:class "flex items-center space-x-1"}
     (el-with (dropdown-select url) {:id "sort" :name "sort" :title "Sort by" :class "w-32"}
-             (for [[value text] [["" "Name"]
-                                 ["stars" "Stars"]
-                                 ["stars_week" "Weekly Gain"]
-                                 ["stars_month" "Monthly Gain"]
+             (for [[value text] [["name" "Name"]
+                                 ["stars" "Stars Total"]
+                                 ["stars_week" "Stars Weekly"]
+                                 ["stars_month" "Stars Monthly"]
                                  ["updated" "Last Update"]
                                  ["created" "Created"]]]
                [:option {:value value :selected (= value sort)} text]))
@@ -124,7 +124,7 @@
     (category-icon) (category-dropdown user url category categories)]
 
    [:div {:class "flex items-center space-x-2"}
-    [:div {:class "text-sm font-light text-brand font-medium mr-2"}
+    [:div {:class "repos-page-top text-sm font-light text-brand font-medium mr-2"}
      (str "Page " page " / " total)]
 
     (pagination-btn-previous url page)
@@ -145,7 +145,7 @@
   [:div {:class "flex items-center justify-center space-x-2"}
    (pagination-btn-previous url page)
 
-   [:div {:class "text-sm font-light text-brand font-medium px-2"}
+   [:div {:class "repos-page-btm text-sm font-light text-brand font-medium px-2"}
     (str "Page " page " out of " total)]
 
    (pagination-btn-next url page total)])
@@ -187,7 +187,7 @@
      [:label {:for toggle-id :title "Toggle plugin visiblity"
               :class "relative block h-7 w-14 rounded-full transition-colors bg-nvim-surface border border-brand rounded-xl"}
       [:input {:id toggle-id :name "hidden-edit" :type "checkbox" :value "true"
-               :class "peer sr-only"
+               :class "repo-hidden-toggle peer sr-only"
                :checked (when hidden "checked")}]
       [:span {:class "absolute inset-y-0 start-0 ml-1 size-5 bg-nvim-text rounded-full transition-[inset-inline-start] 
                     top-1/2 -translate-y-1/2 peer-checked:start-6 peer-checked:bg-nvim-text-muted"}]]
@@ -200,7 +200,7 @@
   (when (or (not hidden) (can-edit? user plugin))
     (let [edit? (= edit repo)]
       [:div {:id (str "repo-" id)
-             :class "rounded-lg border border-subtle p-6 hover:shadow-md transition-shadow bg-surface-card"}
+             :class "repo-card rounded-lg border border-subtle p-6 hover:shadow-md transition-shadow bg-surface-card"}
        [:form
         [:div {:class "flex items-start justify-between"}
          [:div {:class "flex-1 relative"}
@@ -209,17 +209,17 @@
                  :hx-trigger "click" :hx-target "this"}
            "Loading preview..."]
 
-          [:div {:class "flex sm:flex-row flex-col items-center justify-between mb-2"}
-           [:a {:class "flex items-center text-xl font-semibold text-brand-strong overflow-hidden
+          [:div {:class "flex sm:flex-row flex-col sm:items-center justify-between mb-2"}
+           [:a {:class "repo-url flex items-center text-xl font-semibold text-brand-strong overflow-hidden
                    break-words break-all whitespace-normal max-w-full hyphens-auto"
                 :href url
                 :hx-on:mouseover "showPreview(this);" :hx-on:mouseleave "hidePreview(this);"}
             name
 
             (when archived
-              [:div {:class "flex-row pl-2" :title "Archived"} (archived-icon)])
+              [:div {:class "repo-archived flex-row pl-2" :title "Archived"} (archived-icon)])
             (when hidden
-              [:div {:class "flex-row pl-2" :title "Hidden"} (hidden-icon)])]
+              [:div {:class "repo-hidden flex-row pl-2" :title "Hidden"} (hidden-icon)])]
 
            (when edit?
              (hide-toggle id hidden))]
@@ -231,7 +231,7 @@
             (when-not (or (= "category" group)
                           (and (seq category) (not (#{"watched" "archived"} category))))
 
-              [:div {:class "sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
+              [:div {:class "repo-category sm:flex space-y-2 sm:space-x-2 sm:space-y-0 mb-2 gap-2"}
                (let [category (:category plugin)]
                  (el-with (plugin-topic (if (seq category) category  ""))
                           {:class "min-w-16 px-2 py-2 justify-center"}))]))
@@ -239,29 +239,29 @@
           (if edit?
             [:textarea {:id "description-edit" :name "description-edit" :type "text"
                         :class "appearance-none bg-transparent border border-brand rounded-lg
-                      px-3 py-2 mb-2 text-sm text-secondary 
+                                px-3 py-2 mb-2 text-sm text-secondary 
                       focus-brand focus-brand-border w-full field-sizing-content"} description]
-            [:div {:class "flex text-muted mb-3 max-w-64 sm:max-w-full whitespace-pre-wrap"} description])
+            [:div {:class "repo-description flex text-muted mb-3 max-w-64 sm:max-w-full whitespace-pre-wrap"} description])
 
           (when (seq topics)
-            [:div {:class "flex items-center flex-wrap gap-2 mb-3"}
+            [:div {:class "repo-topics flex items-center flex-wrap gap-2 mb-3"}
              (map plugin-topic (str/split topics #" "))])
 
           [:div {:class "text-sm text-subtle flex flex-col sm:flex-row space-x-4 mt-4"}
            (let [created (date->str created)]
              (when (not= "1970-01-01" created)
-               [:span "Created: " created]))
+               [:span {:class "repo-created"} "Created: " created]))
 
            (let [updated (date->str updated)]
              (when (not= "1970-01-01" updated)
-               [:span "Last updated: " updated]))]]
+               [:span {:class "repo-updated"} "Last updated: " updated]))]]
 
          [:div {:class "flex flex-col items-end pt-2 pl-2 self-stretch"}
           (when (pos? stars)
             [:div {:class "flex-col h-full"}
-             (star stars star-icon "justify-end space-x-1 py-2 text-sm text-yellow-500" "Total")
-             (star (- stars stars_week) growth-icon-w "justify-end space-x-1 py-2 text-sm text-orange-500" "Stars since beginning of the week")
-             (star (- stars stars_month) growth-icon-m "justify-end space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])
+             (star stars star-icon "repo-stars justify-end space-x-1 py-2 text-sm text-yellow-500" "Total")
+             (star (- stars stars_week) growth-icon-w "repo-stars-week justify-end space-x-1 py-2 text-sm text-orange-500" "Stars since beginning of the week")
+             (star (- stars stars_month) growth-icon-m "repo-stars-month justify-end space-x-1 py-2 text-sm text-red-500" "Stars since beginning of the month")])
 
           (when user
             (user-section request plugin))]]]])))
@@ -274,7 +274,7 @@
      [:div {:class "flex items-center justify-between mb-4"}
       [:h2 {:class (when-not show-group? "invisible")}
        [:span {:class "text-xl font-semibold text-brand-emphasis"} "Category: "]
-       [:span {:class "text-xl font-semibold text-category"} group-name]]
+       [:span {:class "repos-group text-xl font-semibold text-category"} group-name]]
 
       (when (= 0 n)
         [:div {:class "flex items-center space-x-2"}
