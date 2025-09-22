@@ -1,6 +1,7 @@
 (ns user
   (:require
    [nrepl.core :as nrepl]
+   [nvim-app.utils :as u]
    [clojure.tools.namespace.repl :as repl]
    [rebel-readline.clojure.main :as main]
    [clj-commons.pretty.repl :as pretty-repl]
@@ -12,7 +13,6 @@
    [clojure.test :as test]
    [clojure.tools.logging :as log]
    [clojure.string :as str])
-   ; [kaocha.repl :as k]
 
   (:import
    [ch.qos.logback.classic Level]
@@ -26,6 +26,26 @@
 
 (defn ex-format [e]
   (pretty/format-exception e))
+
+; (defonce send-analysis-original-fn #'cider.nrepl.middleware.stacktrace/send-analysis)
+; (alter-var-root #'cider.nrepl.middleware.stacktrace/send-analysis
+;                 (fn [original]
+;                   (fn [msg analysis]
+;                     (println msg analysis)
+;                     (let [analysis* (map (fn [cause]
+;                                            (if (instance? Throwable cause)
+;                                              (ex-format cause)
+;                                              cause))
+;                                          analysis)]
+;                       (send-analysis-original-fn msg analysis*)))))
+
+; (defonce cider-pprint-original-fn cider.nrepl.pprint/pprint)
+#_(alter-var-root #'cider.nrepl.pprint/pprint
+                  (fn [original-fn]
+                    (fn [value writer options]
+                      (println (type value))
+                      (let [value* (if (instance? Throwable value) (u/ex-format value) value)]
+                        (cider-pprint-original-fn value writer options)))))
 
 (defn patch-rebel-readline []
   (println "Patching rebel-readline to use puget for syntax highlighting")
@@ -67,6 +87,9 @@
 (defn set-log-level! [logger-name level]
   (let [logger (LoggerFactory/getLogger logger-name)]
     (.setLevel ^ch.qos.logback.classic.Logger logger (Level/valueOf (name level)))))
+
+(defn get-log-level [logger-name]
+  (str (.getLevel (LoggerFactory/getLogger logger-name))))
 
 (defn get-methods [obj]
   {:type (type obj)

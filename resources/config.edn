@@ -13,7 +13,7 @@
  :repl    {:port #long #or [#env NVIM_APP_REPL_PORT 7700]
            :enable #or [#env NVIM_APP_REPL_ENABLE false]}
 
- :sched    {:enable #profile {:default true :dev false}
+ :sched    {:enable #profile {:default true :dev false :test false}
             :update-repos-interval-hr 4
             :update-previews-interval-hr 168}
 
@@ -36,4 +36,4 @@
 
  :telegram {:bot-token #or [#env TELEGRAM_BOT_TOKEN #ref [:secrets :telegram :bot-token]]
             :chat-id #or [#env TELEGRAM_CHAT_ID #ref [:secrets :telegram :chat-id]]
-            :enable #profile {:default true :dev false}}}
+            :enable #profile {:default true :dev false :test false}}}

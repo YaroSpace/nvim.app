@@ -22,7 +22,7 @@
   ([] (read-config {:profile :default}))
   ([opts]
    (-> "config.edn"
-       (io/resource)
+       io/resource
        (aero/read-config opts))))
 
 (comment

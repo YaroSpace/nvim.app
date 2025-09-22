@@ -31,9 +31,9 @@
 (defn -main []
   (try
     (let [system (-> (config/read-config)
-                     (config/assert-valid-config!)
-                     (nvim-app-system)
-                     (component/start-system))]
+                     config/assert-valid-config!
+                     nvim-app-system
+                     component/start-system)]
 
       (.addShutdownHook
        (Runtime/getRuntime)

@@ -1,8 +1,7 @@
 (ns nvim-app.integration.github-login-test
   (:require
    [nvim-app.utils :refer [fetch-request] :as u]
-   [nvim-app.helpers :refer [setup-sut! with-driver] :as h]
-   [etaoin.api :as e]
+   [nvim-app.helpers :refer [setup-sut! silent-logging with-driver] :as h]
    [lazytest.core :refer [defdescribe describe expect it]]
    [clojure.core.async :as a]
    [matcher-combinators.standalone :as m]))
@@ -10,11 +9,12 @@
 (def driver (atom nil))
 (def sut (atom nil))
 
-(defn go [route & [params]]
-  (e/go @driver (h/get-sut-url-for @sut route params)))
+(defn go-sut [route & [params]]
+  (with-driver driver
+    (go (h/get-sut-url-for @sut route params))))
 
 (defdescribe github-login-test
-  {:context [(setup-sut! sut driver :headless? false)]}
+  {:context [silent-logging (setup-sut! sut driver :headless? true)]}
   (let [responses (a/to-chan! [{:status 200 :body {:access_token "valid-token"}}
                                {:status 200 :body {:id 1
                                                    :login "login"
@@ -26,14 +26,14 @@
     (with-driver driver
       (describe "Logs in with GitHub"
         (it "Successful login"
-          (go :home)
+          (go-sut :home)
           (click {:fn/has-class "github-login"})
 
-          (let [url (e/js-execute @driver "return window.location.href")]
+          (let [url (js-execute "return window.location.href")]
             (expect (m/match? #"login" url))
 
-            (with-redefs [fetch-request (fn [_ & _] (a/<!! responses))]
-              (go :github-callback {:code "valid-code"})
+            (with-redefs [fetch-request (fn [& _] (a/<!! responses))]
+              (go-sut :github-callback {:code "valid-code"})
 
               (let [alert-title (get-element-text ".alert-title")
                     alert-message (get-element-text ".alert-message")]
@@ -42,4 +42,5 @@
 
 (comment
   (with-driver driver
-    (e/js-execute @driver "return window.location.href")))
+    (click :asda)))
+    ; (e/js-execute @driver "return window.location.href")))

@@ -12,7 +12,7 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.pprint :as pprint]
-   [slingshot.slingshot :refer [try+]])
+   [clj-commons.slingshot :refer [try+ throw+]])
   (:import [java.time Instant Duration]))
 
 (defn older-than?
@@ -21,7 +21,7 @@
   [^Instant instant days]
   (-> instant
       (Duration/between (Instant/now))
-      (.toDays)
+      .toDays
       (> days)))
 
 (defn strip-trace [m]
@@ -35,14 +35,15 @@
                     :else %))))
 
 (defn ex-short [ex]
-  (-> ex
-      (Throwable->map)
-      (strip-trace)
-      (assoc :trace (.getStackTrace ex))))
+  (let [ex-map (if (instance? Throwable ex) (Throwable->map ex) ex)
+        ex-trace (:trace ex-map)]
+    (cond-> (strip-trace ex-map)
+      ex-trace (assoc :trace ex-trace))))
 
 (defn pretty-format [x]
-  (with-out-str
-    (pprint/pprint x)))
+  (binding [*print-length* false]
+    (with-out-str
+      (pprint/pprint x))))
 
 (defn ex-format [ex]
   (pretty-format
@@ -173,22 +174,22 @@
 (defn preview-stale? [id]
   (->
    (format preview-filename id)
-   (io/file)
-   (.lastModified)
-   (Instant/ofEpochMilli)
+   io/file
+   .lastModified
+   Instant/ofEpochMilli
    (older-than? 7)))
 
 (defn make-preview
   ([id]
    (make-preview id false))
-  ([id force-update]
+  ([id force-update?]
    (let [filename (format preview-filename id)
          file (io/file filename)]
      (or
       (and (-> file .exists)
-           (> 40000 (-> file .length)) ; file is too small if preview incomplete
+           (> 40000 (-> file .length)) ; file is too small if preview is incomplete
            (not (preview-stale? id))
-           (not force-update))
+           (not force-update?))
 
       (when-let [url (:url (db/select-one :repos :id id))]
         (let [selector (if (str/includes? url "github.com")
@@ -204,7 +205,9 @@
                true))
 
            (catch [:type :etaoin/http-error] {:keys [response]}
-             (log/error "HTTP errror during preview for repo" id response))
+             (if (str/includes? "tab crashed" (-> response :value :error))
+               (log/error "Preview crashed for repo" id)
+               (log/error "HTTP errror during preview for repo" id response)))
 
            (catch [:type :etaoin/timeout] _
              (alter-in-app-config! [:app :features :preview] false)
@@ -213,7 +216,8 @@
            (catch Object e
              (if dev?
                (do (tap> e) false)
-               (log/error "Failed to make preview for repo " (ex-format e)))))))))))
+               (log/error "Failed to make preview for repo "
+                          (ex-format (:wrapper &throw-context))))))))))))
 
 (defn update-previews! [& {:keys [force-update] :or {force-update false}}]
   (when (-> app-config :app :features :preview)
@@ -221,7 +225,7 @@
      (for [{:keys [id]} (db/select :repos)]
        (make-preview id force-update))
      (keep some?)
-     (count)
+     count
      (log/info "Updated previews:"))))
 
 (comment

@@ -22,7 +22,7 @@
 (defn update-previews! []
   (when (some->
          (:last-preview-update (app/get-data))
-         (Instant/parse)
+         Instant/parse
          (u/older-than? 7))
 
     (log/info "Scheduler: Updating previews")

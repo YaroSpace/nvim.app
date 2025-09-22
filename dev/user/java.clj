@@ -137,4 +137,4 @@
                     " Java members:\n"))
       (->> (java-members clazz {:public-only public-only})
            (s/join "\n")
-           (println)))))
+           println))))
