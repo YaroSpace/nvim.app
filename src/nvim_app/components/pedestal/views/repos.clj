@@ -169,7 +169,8 @@
   [:div {:class "flex items-center"}
    [:div {:class "relative w-full"}
     [:select {:id "category-edit" :name "category-edit" :title "Edit category"
-              :class "appearance-none bg-transparent border border-brand rounded-lg
+              :class "repo-category-edit appearance-none bg-transparent 
+                      border border-brand rounded-lg
                       px-3 py-2 pr-8 text-sm text-secondary 
                       focus-brand focus-brand-border w-full sm:w-60"}
 
@@ -238,7 +239,8 @@
 
           (if edit?
             [:textarea {:id "description-edit" :name "description-edit" :type "text"
-                        :class "appearance-none bg-transparent border border-brand rounded-lg
+                        :class "repo-description-edit appearance-none bg-transparent 
+                                border border-brand rounded-lg
                                 px-3 py-2 mb-2 text-sm text-secondary 
                       focus-brand focus-brand-border w-full field-sizing-content"} description]
             [:div {:class "repo-description flex text-muted mb-3 max-w-64 sm:max-w-full whitespace-pre-wrap"} description])

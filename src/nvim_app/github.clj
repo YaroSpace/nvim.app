@@ -1,6 +1,6 @@
 (ns nvim-app.github
   (:require
-   [nvim-app.config :as config]
+   [nvim-app.state :refer [app-config]]
    [nvim-app.db.core :as db]
    [nvim-app.db.repo :as repo]
    [nvim-app.specs :as specs]
@@ -17,12 +17,18 @@
 
 (def github-config
   {:api-uri "https://api.github.com/graphql"
-   :token (-> (config/read-config) :github :token)
-   :batch-size 100
+   :batch-size 100 ; max number of nodes per query
    :main-query (slurp (io/resource "github/main.gql")) ; main search query
    :cursors-query (slurp (io/resource "github/cursors.gql")) ; get endCursor for pagination
    :data-template (slurp (io/resource "github/data-template.gql")) ; template for data updated query
    :data-partial (slurp (io/resource "github/data-partial.gql"))}) ; partial for data updated query
+
+(def processing-config
+  {:request-retries 2   ; number of retries on errors
+   :max-concurrency 10  ; max concurrent requests to GitHub
+   :delay-ms 1000       ; max random delay before each request
+   :async-buffer 10     ; async channels buffer size
+   :async-workers 10})   ; number of async workers for processing responses
 
 (defn build-graphql-query [query-type & params]
   (let [query (query-type github-config)]
@@ -33,7 +39,7 @@
    {:method :post
     :url (:api-uri github-config)
     :content-type "application/json"
-    :headers {"Authorization" (str "Bearer " (:token github-config))}
+    :headers {"Authorization" (str "Bearer " (-> app-config :github :token))}
     :body body}))
 
 (defn normalize-search-node
@@ -53,9 +59,9 @@
          :owner (:login owner)
          :archived isArchived
          :topics (map #(get-in % [:topic :name]) (:nodes repositoryTopics))
-         :created (some-> createdAt (inst/read-instant-timestamp))
+         :created (some-> createdAt inst/read-instant-timestamp)
          :updated (some-> (get-in defaultBranchRef [:target :committedDate])
-                          (inst/read-instant-timestamp))))
+                          inst/read-instant-timestamp)))
 
 (defn normalize-data-response
   "Normalizes GitHub response.
@@ -116,7 +122,7 @@
    "
 
   [{:keys [status headers body]}
-   & {:keys [delay-ms] :or {delay-ms 1000}}]
+   & {:keys [delay-ms] :or {delay-ms (:delay-ms processing-config)}}]
 
   (let [{:strs [retry-after]} headers ; x-ratelimit-remaining x-ratelimit-reset  
         delay (* delay-ms (parse-long (or retry-after "1")))]
@@ -126,7 +132,7 @@
            (str/starts-with? (:message body) "You have exceeded a secondary rate limit"))
       delay
 
-      (contains? #{503 504} status) ; Service Unavailable or Timeout
+      (contains? #{502 503 504} status) ; Bad Gateway, Service Unavailable, Timeout
       delay
 
       :else false)))
@@ -140,7 +146,7 @@
 
   Returns: response map from request-fn."
 
-  [request-fn & {:keys [retries] :or {retries 2}}]
+  [request-fn & {:keys [retries] :or {retries (:request-retries processing-config)}}]
 
   (a/go-loop [attempt 1]
     (let [response (with-rpcall (request-fn))
@@ -167,20 +173,22 @@
   - `cursors-ch`: channel with GH page cursors (strings).
   - `:page-size` (Number): Number of results per page.
   - `:update-fn`: function that processes response.
-  - `:max-conccurency`: max number of concurrent requests (default 10).
   - `:delay-ms`: max random delay before each request (default 1000ms).
 
   Returns: a channel with normalized responses
   `{:results [...], :errors [...], :rate-limit {...}}`
   "
   [search-str cursors-ch
-   & {:keys [page-size update-fn max-conccurency delay-ms]
+   & {:keys [page-size update-fn delay-ms]
       :or {page-size 2 update-fn identity
-           max-conccurency 10 delay-ms 1000}}]
+           delay-ms (:delay-ms processing-config)}}]
 
-  (let [responses-ch (a/chan) results-ch (a/chan)]
+  (let [ab (:async-buffer processing-config)
+        aw (:async-workers processing-config)
+        responses-ch (a/chan ab) results-ch (a/chan ab)]
+
     (a/pipeline-async
-     max-conccurency responses-ch
+     aw responses-ch
      (fn [page-cursor out-ch]
        (let [params [:main-query search-str page-size page-cursor]
              query (apply build-graphql-query params)]
@@ -191,7 +199,7 @@
      cursors-ch)
 
     (a/pipeline-async
-     5 results-ch
+     aw results-ch
      (fn [resp out-ch]
        (a/go
          (a/>! out-ch (or (with-rpcall (process-search-response resp update-fn))
@@ -215,7 +223,7 @@
   [search-str & {:keys [page-size page-limit]
                  :or {page-size 2 page-limit 2}}]
 
-  (let [cursors-ch (a/chan)]
+  (let [cursors-ch (a/chan (:async-buffer processing-config))]
     (a/go (a/>! cursors-ch "")) ; start with empty cursor
 
     (a/go-loop [page-cursor "" pages 1]
@@ -327,7 +335,7 @@
 
      (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} (a/merge result-chs)))
        (-> (processed-results-stats start-time)
-           (log-update-results))))))
+           log-update-results)))))
 
 (defn create-from-awesome!
   "Creates a new repo from Awesome plugin data.
@@ -343,7 +351,7 @@
                 :name (or name owner)
                 :topics ["awesome"]})
         (dissoc :category)
-        (repo/upsert-repo!))))
+        repo/upsert-repo!)))
 
 (defn update-repos-from-awesome!
   "Updates GitHub repos from the Awesome list.
@@ -360,7 +368,7 @@
                   (db/update! :repos {:category_id category-id}
                               :where [:and [:= :id repo-id] [:= :dirty false]])
                   (create-from-awesome! (assoc plugin :category-id category-id))))))
-       (count)
+       count
        (log/info "Github: Updated repositories from Awesome:")))
 
 (defn update-stars
@@ -393,7 +401,7 @@
           (with-rpcall
             (if update-fn
               (update-fn repo)
-              (-> repo (update-stars) (repo/upsert-repo!)))))
+              (-> repo update-stars repo/upsert-repo!))))
 
         (log/info "Github: Updated data for" (count results) "repos")
         (when errors
@@ -416,9 +424,12 @@
    "
   [queries-ch]
 
-  (let [responses-ch (a/chan) results-ch (a/chan)]
+  (let [ab (:async-buffer processing-config)
+        aw (:async-workers processing-config)
+        responses-ch (a/chan ab) results-ch (a/chan ab)]
+
     (a/pipeline-async
-     5 responses-ch
+     aw responses-ch
      (fn [query out-ch]
        (a/go
          (a/<! (a/timeout (rand-int 1000)))
@@ -427,7 +438,7 @@
      queries-ch)
 
     (a/pipeline-async
-     3 results-ch
+     aw results-ch
      process-github-data-async
      responses-ch)
 
@@ -448,7 +459,7 @@
                  (format (:data-partial github-config) id owner name))))
        (partition-all 100) ; Github allows up to 100 nodes per query
        (map #(->> % (str/join "") (build-graphql-query :data-template)))
-       (a/to-chan!)))
+       a/to-chan!))
 
 (defn update-repos-data!
   "Updates data for GitHub repos in the database.
@@ -468,7 +479,7 @@
 
       (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} results-ch))
         (-> (processed-results-stats start-time)
-            (log-update-results))))))
+            log-update-results)))))
 
 (defn delete-duplicate-repos! []
   (let [deleted (->> (concat
@@ -497,6 +508,6 @@
   (a/<!! (search-github-and-process-async "lua-console"))
   (->> (db/select :repos)
        (mapcat #(str/split (:topics %) #" "))
-       (frequencies)
+       frequencies
        (sort-by val >)
        (take 40)))

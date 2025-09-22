@@ -19,20 +19,23 @@
   (log/info "Scheduler: Updating Github repositories")
   (github/update-all!))
 
-(defn update-previews! []
-  (when (some->
-         (:last-preview-update (app/get-data))
-         (Instant/parse)
-         (u/older-than? 7))
+(defn update-previews! [interval-hr]
+  (fn []
+    (when (some->
+           (:last-preview-update (app/get-data))
+           Instant/parse
+           (u/older-than? interval-hr))
 
-    (log/info "Scheduler: Updating previews")
-    (u/update-previews!)
-    (app/save-data! (assoc (app/get-data)
-                           :last-preview-update (Date.)))))
+      (log/info "Scheduler: Updating previews")
+      (u/update-previews!)
+      (app/save-data! (assoc (app/get-data)
+                             :last-preview-update (Date.))))))
 
 (defn start-tasks [config scheduler]
   (schedule-task scheduler update-repos! (:update-repos-interval-hr config))
-  (schedule-task scheduler update-previews! (:update-previews-interval-hr config)))
+
+  (let [interval-hr (:update-previews-interval-hr config)]
+    (schedule-task scheduler (update-previews! interval-hr) interval-hr)))
 
 (defn completed-tasks
   ([]

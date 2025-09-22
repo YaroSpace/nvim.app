@@ -60,7 +60,7 @@
   []
   (-> (fetch-readme)
       (or "")
-      (parse-readme)))
+      parse-readme))
 
 (comment
   (re-matches #"https://[^/].+/(.+/.+)$" "https://git.sr.ht/~whynothugo/lsp_lines.nvim")

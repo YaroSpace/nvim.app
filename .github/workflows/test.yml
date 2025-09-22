@@ -1,0 +1,68 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      chrome-driver:
+        image: erseco/alpine-chromedriver
+        ports:
+          - 9515:9515
+
+    steps:
+      - name: Pre-pull postgres
+        run: docker pull postgres:latest
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+        
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Set up Clojure
+        uses: DeLaGuardo/setup-clojure@main
+        with:
+          cli: '1.12.2.1565'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.clojure
+            ~/.cpcache
+            ~/.deps.clj
+          key: ${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+
+      - name: Run tests
+        run: clojure -M:test:lazy
+
+      - name: Deploy
+        if: success()
+        env:
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          WEBHOOK_ENDPOINT: ${{ secrets.WEBHOOK_ENDPOINT }}
+        run: |
+          PAYLOAD='${{ toJSON(github.event) }}'
+          SIGNATURE="sha256=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | sed 's/^.* //')"
+          DELIVERY=$(uuidgen)
+          echo '${{ toJSON(github.event) }}' > payload.json
+          curl -X POST \
+               -H "Content-Type: application/json" \
+               -H "X-GitHub-Event: push" \
+               -H "X-GitHub-Delivery: $DELIVERY" \
+               -H "X-Hub-Signature-256: $SIGNATURE" \
+               -d "$PAYLOAD" \
+               http://193.181.211.112/$WEBHOOK_ENDPOINT

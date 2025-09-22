@@ -29,6 +29,8 @@
                   repo-new (merge
                             {:description description-edit
                              :hidden (= "true" hidden-edit)
+                             :name (:name repo-old)
+                             :owner (:owner repo-old)
                              :url (:url repo-old)
                              :dirty true}
                             (when-let [category_id (:id (db/select-one

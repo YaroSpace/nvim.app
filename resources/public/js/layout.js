@@ -12,12 +12,6 @@ function toggleMenu() {
   document.addEventListener("click", hideMenu);
 }
 
-function hideAlert() {
-  setTimeout(() => {
-    document.getElementById("alert-box").classList.add("hidden");
-  }, 3000);
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   hideAlert();
 
@@ -52,3 +46,18 @@ document.addEventListener("keydown", (event) => {
       break;
   }
 });
+
+function hideAlert() {
+  setTimeout(() => {
+    document.getElementById("alert-box").classList.add("hidden");
+  }, 3000);
+}
+
+if (document.getElementById("dev") !== null) {
+  htmx.on("htmx:responseError", (event) => {
+    const target = document.getElementById(event.detail.target.id);
+    if (target && event.detail.xhr.responseText) {
+      target.innerHTML = event.detail.xhr.responseText;
+    }
+  });
+}

@@ -18,8 +18,7 @@
    [:meta {:content "width=device-width, initial-scale=1.0" :name "viewport"}]
    [:link {:href "/images/favicon.ico" :rel "icon" :type "image/x-icon"}]
 
-   (when dev?
-     [:meta {:name "htmx-config" :content "{\"responseHandling\": [{\"code\":\".*\", \"swap\": true}]}"}])
+   (when dev? [:meta {:id "dev"}])
 
    [:title "Neovim Plugins Catalog"]
 
