@@ -1,0 +1,68 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      chrome-driver:
+        image: erseco/alpine-chromedriver
+        ports:
+          - 9515:9515
+
+    steps:
+      - name: Pre-pull postgres
+        run: docker pull postgres:latest
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+        
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Set up Clojure
+        uses: DeLaGuardo/setup-clojure@main
+        with:
+          cli: '1.12.2.1565'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.clojure
+            ~/.cpcache
+            ~/.deps.clj
+          key: ${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+
+      - name: Run tests
+        run: clojure -M:test:lazy
+
+      - name: Deploy
+        if: success()
+        env:
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          echo '${{ toJSON(github.event) }}' > payload.json
+          curl -X POST \
+               -H "Content-Type: application/json" \
+               -H "X-GitHub-Event: push" \
+               -d @payload.json \
+               https://nvim.app/$WEBHOOK_SECRET
+
+          # SIGNATURE="sha256=$(echo '${{ toJSON(github.event) }}' | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | cut -d " " -f2)"
+          # DELIVERY=$(uuidgen)
+          # -d "${{ toJSON(github.event) }}" \
+          # -H "X-GitHub-Delivery: $DELIVERY" \
+          # -H "X-Hub-Signature-256: $SIGNATURE" \

@@ -1,62 +1,22 @@
 (ns nvim-app.integration.repos-page-test
   (:require
-   [nvim-app.utils :refer [with-rpcall] :as u]
-   [nvim-app.helpers :refer [setup-sut! with-driver] :as h]
+   [nvim-app.helpers :refer [setup-sut! silent-logging with-driver] :as h]
+   [nvim-app.integration.core :refer :all]
    [etaoin.api :as e]
    [lazytest.core :refer [defdescribe describe before expect it]]
    [matcher-combinators.standalone :as m]))
 
 (def driver (atom nil))
 (def sut (atom nil))
+(def page (atom nil))
+
+(def sleep 0.7)
 
 (defn go [route & [params]]
   (e/go @driver (h/get-sut-url-for @sut route params)))
 
-(defn get-repo-cards []
-  (with-driver driver
-    (query-all {:fn/has-class "repo-card"})))
-
-(defn get-repos-on-page []
-  (let [els ["repo-url" "repo-category" "repo-description" "repo-topics"
-             "repo-stars" "repo-stars-week" "repo-stars-month"
-             "repo-created" "repo-updated"
-             "repo-category-edit" "repo-description-edit"
-             "repo-archived" "repo-hidden" "repo-watch" "repo-edit"]]
-
-    (with-driver driver
-      (doall
-       (for [repo (get-repo-cards)]
-         (merge
-          {:repo-hidden-toggle (with-rpcall :silent
-                                 (get-element-value-el
-                                  (query-from repo {:fn/has-class "repo-hidden-toggle"})))}
-          (into {} (for [el els]
-                     [(keyword el)
-                      (with-rpcall :silent
-                        (get-element-text-el
-                         (query-from repo {:fn/has-class el})))]))))))))
-
-(defn get-repos-groups []
-  (with-driver driver
-    (->> (query-all {:fn/has-class "repos-group"})
-         (map #(get-element-text-el %)))))
-
-(defn get-repos-page []
-  (with-driver driver
-    (merge
-     (into {} (mapv (fn [el] [el (get-element-text-el (query el "option:checked"))])
-                    [:group :sort :category]))
-     {:repos (get-repos-on-page)
-      :repos-groups (get-repos-groups)
-      :search-input (get-element-value :search-input)
-      :limit-input (get-element-value :limit-input)
-      :repos-page-top (get-element-text {:fn/has-class "repos-page-top"})
-      :repos-page-btm (get-element-text {:fn/has-class "repos-page-btm"})})))
-
-(def page (atom nil))
-
 (defdescribe repo-page-test
-  {:context [(setup-sut! sut driver :headless? true)]}
+  {:context [silent-logging (setup-sut! sut driver :headless? true)]}
 
   (describe "Compact view")
   (describe "Dark mode")
@@ -67,7 +27,7 @@
       (describe "show page with default params"
         (before
          (go :repos)
-         (reset! page (get-repos-page)))
+         (reset! page (get-repos-page driver)))
 
         (it "has the correct title"
           (let [title "Neovim Plugins Catalog"]
@@ -113,7 +73,7 @@
           (go :repos {:params {:q "search" :group "category"
                                :sort "created" :category "Plugin Manager"
                                :page 2 :limit 5}})
-          (reset! page (get-repos-page))
+          (reset! page (get-repos-page driver))
 
           (expect (= {:category "Plugin Manager",
                       :group "Category",
@@ -130,8 +90,8 @@
 
         (it "sorts by Name"
           (click [{:id :sort} {:value "name"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Name" (-> @page :sort)))
           (expect (= "aref-web.vim" (-> @page :repos first :repo-url)))
@@ -140,8 +100,8 @@
 
         (it "sorts by Stars Total"
           (click [{:id :sort} {:value "stars"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Stars Total" (-> @page :sort)))
           (expect (= "neoformat" (-> @page :repos first :repo-url)))
@@ -150,8 +110,8 @@
 
         (it "sorts by Stars Weekly"
           (click [{:id :sort} {:value "stars_week"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Stars Weekly" (-> @page :sort)))
           (expect (= "vim-gina" (-> @page :repos first :repo-url)))
@@ -160,8 +120,8 @@
 
         (it "sorts by Stars Monthly"
           (click [{:id :sort} {:value "stars_month"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Stars Monthly" (-> @page :sort)))
           (expect (= "neoformat" (-> @page :repos first :repo-url)))
@@ -170,8 +130,8 @@
 
         (it "sorts by Created"
           (click [{:id :sort} {:value "created"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Created" (-> @page :sort)))
           (expect (= "cmdzero.nvim" (-> @page :repos first :repo-url)))
@@ -180,8 +140,8 @@
 
         (it "sorts by Last Updated"
           (click [{:id :sort} {:value "updated"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Last Update" (-> @page :sort)))
           (expect (= "neoformat" (-> @page :repos first :repo-url)))
@@ -194,8 +154,8 @@
 
         (it "groups by Category"
           (click [{:id :group} {:value "category"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Category" (-> @page :group)))
           (expect (= "-" (-> @page :repos-groups first)))
@@ -207,8 +167,8 @@
 
         (it "groups by Last Updated"
           (click [{:id :group} {:value "updated"}])
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "Last Update" (-> @page :group)))
           (expect (= "2024-01-25" (-> @page :repos-groups first)))
@@ -221,14 +181,8 @@
       (describe "Searhing"
         (it "searches by description"
           (fill :search-input "project")
-          (wait 0.7)
-          (reset! page (get-repos-page))
+          (wait sleep)
+          (reset! page (get-repos-page driver))
 
           (expect (= "trailblazer.nvim" (-> @page :repos first :repo-url)))
-          (expect (= "vim-laravel" (-> @page :repos second :repo-url)))))
-
-      #_(describe "Editing"
-          (it "shows edit fields")
-          (it "updates data")
-          (it "toggles watch")))))
-
+          (expect (= "vim-laravel" (-> @page :repos second :repo-url))))))))

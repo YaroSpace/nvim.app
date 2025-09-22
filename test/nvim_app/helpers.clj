@@ -1,11 +1,11 @@
 (ns nvim-app.helpers
   (:require
    [nvim-app.config :as config]
-   [nvim-app.state :refer [app-system-atom]]
+   [nvim-app.state :refer [app-system-atom dev?]]
    [nvim-app.core :refer [nvim-app-system nvim-database-system]]
    [nvim-app.components.app :refer [reset-state!]]
    [nvim-app.components.pedestal.routes :as r]
-   [nvim-app.integration.fixtures :as fixtures]
+   [nvim-app.fixtures :as fixtures]
    [nvim-app.db.core :as db]
    [io.pedestal.http.route :as route]
    [com.stuartsierra.component :as component]
@@ -29,8 +29,8 @@
 
 (def get-url-for
   (-> r/routes
-      (route/expand-routes)
-      (route/url-for-routes)))
+      route/expand-routes
+      route/url-for-routes))
 
 (defn get-sut-url-for
   ([sut route]
@@ -66,7 +66,8 @@
    :db-spec (get-container-db-spec database-container)})
 
 (defn get-system [system database-container]
-  (let [config (config/read-config {:profile :test})]
+  (let [config (binding [*out* (java.io.StringWriter.)] ; silence not found warnings
+                 (config/read-config {:profile :test}))]
     (system (merge config
                    (get-config database-container)))))
 
@@ -111,17 +112,37 @@
 
 (defn setup-fixtures! [sut]
   (let [ds (:database-component sut)]
-    (db/query-one! ds
-                   {:insert-into :categories
-                    :values fixtures/categories})
-    (db/query-one! ds
-                   {:insert-into :repos
-                    :values fixtures/plugins})))
+    (doseq [[t v] {:users fixtures/users
+                   :categories fixtures/categories
+                   :repos fixtures/repos}]
+      (db/query-one! ds {:insert-into t :values v}))))
 
-(defn silence-logging! []
-  (when (find-ns 'user)
-    ((resolve 'user/set-log-level!) "migratus.core" :warn)
-    ((resolve 'user/set-log-level!) "migratus.database" :warn)))
+(defn silence-logging!
+  "Silences logging in develop"
+  []
+  (when-let [set-log-level! (resolve 'user/set-log-level!)]
+    (let [get-log-level (resolve 'user/get-log-level)]
+      (into {} (for [ns ["migratus.core" "migratus.database" "io.pedestal.http"]]
+                 (let [current-level (get-log-level ns)]
+                   (set-log-level! ns :warn)
+                   [ns current-level]))))))
+
+(defn restore-logging!
+  "Restores logging in develop"
+  [ns-level]
+  (when-let [set-log-level! (resolve 'user/set-log-level!)]
+    (doseq [[ns level] ns-level]
+      (set-log-level! ns level))))
+
+(defmacro with-silenced-logging
+  "Macro to silence logging within its body."
+  [& body]
+  `(let [ns-level# (silence-logging!)
+         original-log-fn# log/log*]
+     (alter-var-root #'log/log* (constantly (fn [& args#])))
+     ~@body
+     (restore-logging! ns-level#)
+     (alter-var-root #'log/log* (constantly original-log-fn#))))
 
 (defmacro with-driver
   "
@@ -147,7 +168,13 @@
                       (let [local-name (symbol (name (symbol (str fn))))]
                         `(~local-name [& args#] (apply ~fn @~driver args#))))
                     wrap-fns#)]
-       ~@body)))
+       (try
+         ~@body
+         (catch Exception e#
+           (let [msg# (-> e# ex-data :response :value :message)]
+             (if dev?
+               (println msg#)
+               (log/error "Error in with-driver block" msg#))))))))
 
 (defn setup-browser! [driver headless?]
   (let [driver* (e/use-css (e/chrome {:headless headless?}))]
@@ -166,7 +193,6 @@
   "
   [sut driver & {:keys [headless?] :or {headless? true}}]
   (around [f]
-    (silence-logging!)
     (with-test-system sut*
       (reset! sut sut*)
       (setup-fixtures! sut*)
@@ -175,3 +201,8 @@
       (when headless?
         (e/quit @driver)
         (reset! driver nil)))))
+
+(def silent-logging
+  (around [f]
+    (with-silenced-logging
+      (f))))

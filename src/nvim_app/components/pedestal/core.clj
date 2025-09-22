@@ -167,7 +167,7 @@
   (start [this]
     (log/info (str "Starting Pedestal component on port: " (:port config)))
     (let [server (-> (service-map config)
-                     (http/default-interceptors)
+                     http/default-interceptors
                      (update ::http/interceptors
                              #(concat [exception-interceptor] %
                                       [(inject-dependencies-interceptor this)
@@ -178,8 +178,8 @@
                                        coerce-body-interceptor
                                        content-negotiation-interceptor
                                        csp-interceptor]))
-                     (http/create-server)
-                     (http/start))]
+                     http/create-server
+                     http/start)]
       (assoc this ::server server)))
 
   (stop [this]

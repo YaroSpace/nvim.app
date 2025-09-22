@@ -1,8 +1,17 @@
-(ns nvim-app.integration.fixtures
+(ns nvim-app.fixtures
   (:require [clojure.instant :as inst]))
 
 (defn str->date [s]
   (inst/read-instant-timestamp s))
+
+(def users
+  [{:github_id 10,
+    :username "username",
+    :email "email",
+    :name "name",
+    :url "profile_url",
+    :avatar_url "avatar_url"
+    :role "admin"}])
 
 (def categories
   [{:id 1, :name "Plugin Manager"}
@@ -55,7 +64,7 @@
    {:id 48, :name "Vim"}
    {:id 49, :name "Resource"}])
 
-(def plugins
+(def repos
   (mapv #(-> %
              (update :created str->date)
              (update :updated str->date))

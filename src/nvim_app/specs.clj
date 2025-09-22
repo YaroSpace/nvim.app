@@ -37,6 +37,7 @@
 (s/def :user/email ::nil->string)
 (s/def :user/name ::nil->string)
 (s/def :user/avatar_url ::nil->string)
+(s/def :user/role ::ne-string?)
 
 (def user-defaults
   {:email "" :name "" :avatar_url ""})
@@ -47,7 +48,7 @@
     (fn [user] (merge user-defaults user)))
 
    (s/keys :req-un [:user/github_id :user/username :user/url]
-           :opt-un [:user/email :user/name :user/avatar_url])))
+           :opt-un [:user/email :user/name :user/avatar_url :user/role])))
 
 (s/def :repo-page/q ::nil->string)
 (s/def :repo-page/group ::nil->string)

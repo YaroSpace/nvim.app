@@ -53,9 +53,9 @@
          :owner (:login owner)
          :archived isArchived
          :topics (map #(get-in % [:topic :name]) (:nodes repositoryTopics))
-         :created (some-> createdAt (inst/read-instant-timestamp))
+         :created (some-> createdAt inst/read-instant-timestamp)
          :updated (some-> (get-in defaultBranchRef [:target :committedDate])
-                          (inst/read-instant-timestamp))))
+                          inst/read-instant-timestamp)))
 
 (defn normalize-data-response
   "Normalizes GitHub response.
@@ -327,7 +327,7 @@
 
      (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} (a/merge result-chs)))
        (-> (processed-results-stats start-time)
-           (log-update-results))))))
+           log-update-results)))))
 
 (defn create-from-awesome!
   "Creates a new repo from Awesome plugin data.
@@ -343,7 +343,7 @@
                 :name (or name owner)
                 :topics ["awesome"]})
         (dissoc :category)
-        (repo/upsert-repo!))))
+        repo/upsert-repo!)))
 
 (defn update-repos-from-awesome!
   "Updates GitHub repos from the Awesome list.
@@ -360,7 +360,7 @@
                   (db/update! :repos {:category_id category-id}
                               :where [:and [:= :id repo-id] [:= :dirty false]])
                   (create-from-awesome! (assoc plugin :category-id category-id))))))
-       (count)
+       count
        (log/info "Github: Updated repositories from Awesome:")))
 
 (defn update-stars
@@ -393,7 +393,7 @@
           (with-rpcall
             (if update-fn
               (update-fn repo)
-              (-> repo (update-stars) (repo/upsert-repo!)))))
+              (-> repo update-stars repo/upsert-repo!))))
 
         (log/info "Github: Updated data for" (count results) "repos")
         (when errors
@@ -448,7 +448,7 @@
                  (format (:data-partial github-config) id owner name))))
        (partition-all 100) ; Github allows up to 100 nodes per query
        (map #(->> % (str/join "") (build-graphql-query :data-template)))
-       (a/to-chan!)))
+       a/to-chan!))
 
 (defn update-repos-data!
   "Updates data for GitHub repos in the database.
@@ -468,7 +468,7 @@
 
       (doto (a/<!! (a/reduce #(merge-with into %1 %2) {} results-ch))
         (-> (processed-results-stats start-time)
-            (log-update-results))))))
+            log-update-results)))))
 
 (defn delete-duplicate-repos! []
   (let [deleted (->> (concat
@@ -497,6 +497,6 @@
   (a/<!! (search-github-and-process-async "lua-console"))
   (->> (db/select :repos)
        (mapcat #(str/split (:topics %) #" "))
-       (frequencies)
+       frequencies
        (sort-by val >)
        (take 40)))

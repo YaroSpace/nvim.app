@@ -2,11 +2,9 @@
   (:require
    [nvim-app.state :refer [app-config]]
    [nvim-app.db.user :as users]
-   [nvim-app.specs :as specs]
    [nvim-app.components.pedestal.handlers.core :refer [redirect]]
-   [nvim-app.utils :as u :refer [ex-format pretty-format]]
+   [nvim-app.utils :as u :refer [ex-format]]
    [io.pedestal.http.route :as route :refer [url-for]]
-   [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [clojure.tools.logging :as log]))
 
@@ -80,9 +78,8 @@
            ; TODO: use slingshot and catch only HTTP and validation exceptions
            (log/errorf "Error during GitHub OAuth: %s" (ex-format e))
            (let [response (ex-data e)
-                 errors (->>
-                         (:errors response {:message (ex-message e)})
-                         (vals) (remove nil?) (str/join ":"))]
+                 errors (->> (:errors response {:message (ex-message e)})
+                             vals (remove nil?) (str/join ":"))]
 
              (assoc context
                     :request (dissoc request :query-params)

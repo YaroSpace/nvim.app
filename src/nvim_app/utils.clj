@@ -12,7 +12,7 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.pprint :as pprint]
-   [slingshot.slingshot :refer [try+]])
+   [clj-commons.slingshot :refer [try+]])
   (:import [java.time Instant Duration]))
 
 (defn older-than?
@@ -21,7 +21,7 @@
   [^Instant instant days]
   (-> instant
       (Duration/between (Instant/now))
-      (.toDays)
+      .toDays
       (> days)))
 
 (defn strip-trace [m]
@@ -36,8 +36,8 @@
 
 (defn ex-short [ex]
   (-> ex
-      (Throwable->map)
-      (strip-trace)
+      Throwable->map
+      strip-trace
       (assoc :trace (.getStackTrace ex))))
 
 (defn pretty-format [x]
@@ -173,9 +173,9 @@
 (defn preview-stale? [id]
   (->
    (format preview-filename id)
-   (io/file)
-   (.lastModified)
-   (Instant/ofEpochMilli)
+   io/file
+   .lastModified
+   Instant/ofEpochMilli
    (older-than? 7)))
 
 (defn make-preview
@@ -221,7 +221,7 @@
      (for [{:keys [id]} (db/select :repos)]
        (make-preview id force-update))
      (keep some?)
-     (count)
+     count
      (log/info "Updated previews:"))))
 
 (comment

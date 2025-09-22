@@ -1,7 +1,7 @@
 (ns nvim-app.integration.github-login-test
   (:require
    [nvim-app.utils :refer [fetch-request] :as u]
-   [nvim-app.helpers :refer [setup-sut! with-driver] :as h]
+   [nvim-app.helpers :refer [setup-sut! silent-logging with-driver] :as h]
    [etaoin.api :as e]
    [lazytest.core :refer [defdescribe describe expect it]]
    [clojure.core.async :as a]
@@ -14,7 +14,7 @@
   (e/go @driver (h/get-sut-url-for @sut route params)))
 
 (defdescribe github-login-test
-  {:context [(setup-sut! sut driver :headless? false)]}
+  {:context [silent-logging (setup-sut! sut driver :headless? true)]}
   (let [responses (a/to-chan! [{:status 200 :body {:access_token "valid-token"}}
                                {:status 200 :body {:id 1
                                                    :login "login"
@@ -32,7 +32,7 @@
           (let [url (e/js-execute @driver "return window.location.href")]
             (expect (m/match? #"login" url))
 
-            (with-redefs [fetch-request (fn [_ & _] (a/<!! responses))]
+            (with-redefs [fetch-request (fn [& _] (a/<!! responses))]
               (go :github-callback {:code "valid-code"})
 
               (let [alert-title (get-element-text ".alert-title")
@@ -42,4 +42,5 @@
 
 (comment
   (with-driver driver
-    (e/js-execute @driver "return window.location.href")))
+    (click :asda)))
+    ; (e/js-execute @driver "return window.location.href")))
