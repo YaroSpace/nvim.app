@@ -6,6 +6,7 @@
         com.github.seancorfield/honeysql        {:mvn/version "2.7.1340"}
         com.github.seancorfield/next.jdbc       {:mvn/version "1.3.1048"}
         org.postgresql/postgresql               {:mvn/version "42.7.7"}
+        com.xtdb/xtdb-api                       {:mvn/version "2.0.0"}
         migratus/migratus                       {:mvn/version "1.6.4"}
         hikari-cp/hikari-cp                     {:mvn/version "3.3.0"}
         clj-http/clj-http                       {:mvn/version "3.13.1"}
@@ -14,18 +15,17 @@
         org.clojure/tools.logging               {:mvn/version "1.3.0"}
         ch.qos.logback/logback-classic          {:mvn/version "1.5.18"}
         nrepl/nrepl                             {:mvn/version "1.3.1"}
-        mvxcvi/puget                            {:mvn/version "1.3.4"}
         etaoin/etaoin                           {:mvn/version "1.1.43"}
         org.clj-commons/slingshot               {:mvn/version "0.13.0"}}
 
  :paths ["src" "resources"]
 
  :aliases {:nrebel
-           {:extra-deps {com.bhauman/rebel-readline-nrepl {:mvn/version "0.1.5"}}
+           {:extra-deps {com.bhauman/rebel-readline-nrepl {:mvn/version "0.1.5"}
+                         mvxcvi/puget                     {:mvn/version "1.3.4"}}
             :exec-fn rebel-readline.nrepl/connect
             :exec-args {:background-print false}
-            :main-opts ["--eval" "(require '[puget.printer :as pp])"
-                        "-m" "rebel-readline.nrepl.main"]
+            ; :main-opts ["--eval" "(alter-var-root #'rebel-readline.clojure.main/syntax-highlight-prn (fn [_] (fn [v] (puget.printer/cprint v))))"]
             :jvm-opts ["--enable-native-access=ALL-UNNAMED"]}
 
            :repl
@@ -41,8 +41,10 @@
                          nubank/matcher-combinators              {:mvn/version "3.9.2"}
                          clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
                          org.testcontainers/postgresql           {:mvn/version "1.21.3"}
+                         com.xtdb/xtdb-core                      {:mvn/version "2.0.0"}
                          ; djblue/portal                           {:mvn/version "0.59.1"}   ; portal data inspector
                          org.clj-commons/pretty                  {:mvn/version "3.5.0"}
+                         mvxcvi/puget                            {:mvn/version "1.3.4"}
                          dev.weavejester/hashp                   {:mvn/version "0.4.0"}
                          clj-http-fake/clj-http-fake             {:mvn/version "1.0.4"}
                          io.github.noahtheduke/lazytest          {:mvn/version "1.9.1"}}
@@ -55,7 +57,8 @@
                         "-f" "rebel-readline.main/-main"]
             :jvm-opts ["--enable-native-access=ALL-UNNAMED"
                        "-Djdk.attach.allowAttachSelf"]}
-
+                       ; "--add-opens=java.base/java.nio=ALL-UNNAMED" ; for xtdb-local
+                       ; "-Dio.netty.tryReflectionSetAccessible=true"]} ; for xtdb-local
                        ;"-Dio.pedestal.dev-mode=true"]}
 
            :build

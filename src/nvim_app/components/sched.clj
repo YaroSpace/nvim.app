@@ -35,7 +35,7 @@
   (schedule-task scheduler update-repos! (:update-repos-interval-hr config))
 
   (let [interval-hr (:update-previews-interval-hr config)]
-    (schedule-task scheduler (update-previews! interval-hr) interval-hr)))
+    (schedule-task scheduler (update-previews! interval-hr) 4)))
 
 (defn completed-tasks
   ([]

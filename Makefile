@@ -22,6 +22,7 @@ deploy:
 
 	$(call confirm,Push changes?)
 	git push --force
+	sleep 10 && .git/hooks/post-push
 
 lint:
 	clj-kondo --lint src
