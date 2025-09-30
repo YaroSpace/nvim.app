@@ -9,6 +9,9 @@
 (defn get-ds []
   (:database-component @app-system-atom))
 
+(defn get-xtds []
+  (:xtdb-component @app-system-atom))
+
 (defn query!
   ([sql] (query! (get-ds) sql jdbc/execute!))
   ([ds sql] (query! ds sql jdbc/execute!))
@@ -134,6 +137,5 @@
     (reset!!)
     (migration-up!))
   (map #(dissoc % :tsv :topics_tsv) (take 10 (select :repos)))
-  (update! :users {:role "admin"} :where [:id 1])
-  (select :categories)
-  (select-one :app))
+  (update! :users {:role "admin"} :where [:id 0])
+  (jdbc/execute! (get-xtds) ["SELECT * FROM information_schema.tables"]))

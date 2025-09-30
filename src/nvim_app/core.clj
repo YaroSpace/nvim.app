@@ -5,6 +5,7 @@
    [nvim-app.components.app :as app]
    [nvim-app.components.pedestal.core :as pedestal-component]
    [nvim-app.components.database :as database-component]
+   [nvim-app.components.xtdb :as xtdb-component]
    [nvim-app.components.sched :as sched-component]
    [nvim-app.components.repl :as repl-component]
    [nvim-app.utils :refer [ex-format]]
@@ -20,13 +21,15 @@
    (component/system-map
     :repl (repl-component/new config)
     :database-component (database-component/new config)
+    :xtdb-component (xtdb-component/new config)
     :pedestal-component (component/using (pedestal-component/new config)
                                          [:database-component])
     :sched (sched-component/new config)
     :app  (app/new config))
-   (component/system-using {:app [:repl :sched
+   (component/system-using {:app [:database-component
+                                  :xtdb-component
                                   :pedestal-component
-                                  :database-component]})))
+                                  :sched :repl]})))
 
 (defn -main []
   (try
