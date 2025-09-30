@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
+      xtdb:
+        image: ghcr.io/xtdb/xtdb:latest
+        ports:
+          - '5442:5432'
+
       chrome-driver:
         image: erseco/alpine-chromedriver
         ports:

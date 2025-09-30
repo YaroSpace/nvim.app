@@ -186,7 +186,7 @@
          file (io/file filename)]
      (or
       (and (-> file .exists)
-           (> 40000 (-> file .length)) ; file is too small if preview is incomplete
+           (< 40000 (-> file .length)) ; file is too small if preview is incomplete
            (not (preview-stale? id))
            (not force-update?))
 

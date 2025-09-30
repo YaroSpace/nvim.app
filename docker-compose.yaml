@@ -12,12 +12,26 @@ services:
       - db-data:/var/lib/postgresql/data
     container_name: nvim-app-database
 
+  xtdb:
+    image: ghcr.io/xtdb/xtdb:latest
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    ports:
+      - '5442:5432'
+      - '5080:8080'
+      - '5030:3000'
+    volumes:
+      - xtdb-data:/var/lib/xtdb
+    container_name: nvim-app-xtdb
+
   chromedriver:
     image: erseco/alpine-chromedriver
     deploy:
       resources:
         limits:
-          memory: 1024M
+          memory: 512M
     ports:
       - "9515:9515"
     container_name: chromedriver
@@ -29,6 +43,7 @@ services:
     build: .
     depends_on:
       - database
+      - xtdb
     ports:
       - "9080:9080"
       - "127.0.0.1:7000:7000"
@@ -39,6 +54,7 @@ services:
       DATABASE_URL: jdbc:postgresql://database:5432/nvim.app
       DATABASE_USER: nvim
       DATABASE_PASSWORD: nvim
+      XTDB_URL: jdbc:xtdb://xtdb:5432/xtdb
       # LOGBACK_LOGLEVEL: WARN
     volumes:
       - web-public:/app/web/public
@@ -53,6 +69,7 @@ services:
 
 volumes:
   db-data:
+  xtdb-data:
   web-public:
 
 networks:

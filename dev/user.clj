@@ -1,7 +1,6 @@
 (ns user
   (:require
    [nrepl.core :as nrepl]
-   [nvim-app.utils :as u]
    [clojure.tools.namespace.repl :as repl]
    [rebel-readline.clojure.main :as main]
    [clj-commons.pretty.repl :as pretty-repl]
@@ -12,7 +11,8 @@
    [user.java :refer :all]
    [clojure.test :as test]
    [clojure.tools.logging :as log]
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [clojure.pprint :as pprint])
 
   (:import
    [ch.qos.logback.classic Level]
@@ -101,6 +101,7 @@
       (first (nrepl/message client data)))))
 
 (def cp> puget.printer/cprint)
+; (def pp pprint/pprint)
 
 (defn pn>
   "Print and strip newlines"
