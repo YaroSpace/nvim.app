@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: nvim.app
       POSTGRES_INITDB_ARGS: --encoding=UTF-8
     volumes:
+    # Upgrade db in VPS with pg_upgrade to move out of /var/lib/postgresql/data into /var/lib/postgresql
+      # - db-data:/var/lib/postgresql
       - db-data:/var/lib/postgresql/data
     container_name: nvim-app-database
 
@@ -28,15 +30,19 @@ services:
 
   chromedriver:
     image: erseco/alpine-chromedriver
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+    mem_limit: 1G
+    memswap_limit: 1G
+    shm_size: 1G
+    environment:
+      - CHROME_OPTS=--disable-dev-shm-usage --no-sandbox --disable-gpu
+      - JAVA_OPTS=-Xmx512m
+      # - JAVA_OPTS="-Xmx384m -Xms256m -XX:MaxMetaspaceSize=96m"
+      - SE_NODE_MAX_SESSIONS=1
+      - SE_NODE_SESSION_TIMEOUT=300
+      - CHROMEDRIVER_WHITELISTED_IPS='' # Disable IP whitelisting
     ports:
       - "9515:9515"
     container_name: chromedriver
-    environment:
-      - CHROMEDRIVER_WHITELISTED_IPS='' # Disable IP whitelisting
     restart: unless-stopped
 
   web:
