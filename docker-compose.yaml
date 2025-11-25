@@ -1,6 +1,7 @@
 services: 
   database:
     image: postgres:latest
+    # image: postgres:17
     ports:
       - '5432:5432'
     environment: 
@@ -9,8 +10,6 @@ services:
       POSTGRES_DB: nvim.app
       POSTGRES_INITDB_ARGS: --encoding=UTF-8
     volumes:
-    # Upgrade db in VPS with pg_upgrade to move out of /var/lib/postgresql/data into /var/lib/postgresql
-      # - db-data:/var/lib/postgresql
       - db-data:/var/lib/postgresql/data
     container_name: nvim-app-database
 

@@ -6,8 +6,6 @@
    [clj-commons.pretty.repl :as pretty-repl]
    [clj-commons.format.exceptions :as pretty]
    [puget.printer :as puget]
-   [hashp.preload]
-   [hashp.config]
    [user.java :refer :all]
    [clojure.test :as test]
    [clojure.tools.logging :as log]
@@ -19,7 +17,7 @@
    [org.slf4j LoggerFactory]))
 
 (defn hashp-setup []
-  (alter-var-root #'hashp.config/*hashp-output* (constantly *out*)))
+  ((requiring-resolve 'hashp.install/install!)))
 
 (defn pretty-exceptions []
   (pretty-repl/install-pretty-exceptions))
@@ -112,6 +110,8 @@
      (println line))))
 
 (def *tap nil)
+
+(defn spy> [x & more] (tap> (cond->> x (seq more) (conj (vec more)))) x)
 
 (defn tap>>
   "Tap with optinal label and save last tapped value to *tap"

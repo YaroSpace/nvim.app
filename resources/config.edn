@@ -4,7 +4,7 @@
            :host #or [#env NVIM_APP_HOST "localhost"]
            :cookie-key #profile {:default "1234567890123456" :dev "1234567890123456"}}
 
- :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/nvim.app"]
+ :db-spec {:jdbc-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5433/nvim.app"]
            :username #or [#env DATABASE_USER "nvim"]
            :password #or [#env DATABASE_PASSWORD "nvim"]
            :maximum-pool-size 20

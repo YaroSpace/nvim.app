@@ -98,6 +98,7 @@
   (s/and
    (s/conformer
     (fn [repo] (as-> repo repo
+                 (reduce-kv (fn [acc k v] (if (nil? v) (dissoc acc k) acc)) repo repo)
                  (merge repo-defaults repo)
                  (assoc repo :repo (str (:owner repo) "/" (:name repo))))))
 

@@ -1,0 +1,36 @@
+services: 
+  database:
+    image: postgres:latest
+    ports:
+      - '5433:5432'
+    environment: 
+      POSTGRES_USER: nvim
+      POSTGRES_PASSWORD: nvim
+      POSTGRES_DB: nvim.app
+      POSTGRES_INITDB_ARGS: --encoding=UTF-8
+    volumes:
+      - db-data:/var/lib/postgresql
+    container_name: nvim-app-database
+  web:
+    build: .
+    depends_on:
+      - database
+    ports:
+      - "9080:9080"
+      - "127.0.0.1:7000:7000"
+    environment:
+      NVIM_APP_HOST: 0.0.0.0
+      NVIM_APP_PORT: 9080
+      NVIM_APP_REPL_PORT: 7000
+      DATABASE_URL: jdbc:postgresql://database:5433/nvim.app
+      DATABASE_USER: nvim
+      DATABASE_PASSWORD: nvim
+      XTDB_URL: jdbc:xtdb://xtdb:5432/xtdb
+      LOGBACK_LOGLEVEL: INFO
+    volumes:
+      - web-public:/app/web/public
+    container_name: nvim-app
+
+volumes:
+  db-data:
+  web-public:
