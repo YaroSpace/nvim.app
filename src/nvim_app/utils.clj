@@ -208,6 +208,11 @@
                (log/error "Preview crashed for repo" id)
                (log/error "HTTP errror during preview for repo" id response)))
 
+           (catch [:type :etaoin/http-ex] {:keys [response]}
+             (if (str/includes? "tab crashed" (-> response :value :error))
+               (log/error "Preview timed out for repo" id)
+               (log/error "HTTP errror during preview for repo" id response)))
+
            (catch [:type :etaoin/timeout] _
              (alter-in-app-config! [:app :features :preview] false)
              (log/error "Timeout making preview for repo" id))
