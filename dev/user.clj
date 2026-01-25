@@ -79,7 +79,7 @@
 
 (defn reset []
   (repl/refresh)
-  (hashp-setup)
+  ; (hashp-setup)
   (system-reset))
 
 (defn set-log-level! [logger-name level]
@@ -153,7 +153,7 @@
   ; (repl/disable-reload! (the-ns 'dev))
 
   (patch-rebel-readline)
-  (hashp-setup)
+  ; (hashp-setup)
   ; (portal-start))
 
   ; (remove-tap pretty-exceptions-tap-handler))

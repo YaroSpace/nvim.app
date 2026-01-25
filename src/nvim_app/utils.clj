@@ -182,46 +182,47 @@
   ([id]
    (make-preview id false))
   ([id force-update?]
-   (let [filename (format preview-filename id)
-         file (io/file filename)]
-     (or
-      (and (-> file .exists)
-           (< 40000 (-> file .length)) ; file is too small if preview is incomplete
-           (not (preview-stale? id))
-           (not force-update?))
+   (when (-> app-config :app :features :preview)
+     (let [filename (format preview-filename id)
+           file (io/file filename)]
+       (or
+        (and (-> file .exists)
+             (< 40000 (-> file .length)) ; file is too small if preview is incomplete
+             (not (preview-stale? id))
+             (not force-update?))
 
-      (when-let [url (:url (db/select-one :repos :id id))]
-        (let [selector (if (str/includes? url "github.com")
-                         {:tag :article :fn/has-class "entry-content"}
-                         {:tag :body})]
-          (try+
-           (e/with-chrome-headless (driver-opts) driver
-             (e/go driver url)
+        (when-let [url (:url (db/select-one :repos :id id))]
+          (let [selector (if (str/includes? url "github.com")
+                           {:tag :article :fn/has-class "entry-content"}
+                           {:tag :body})]
+            (try+
+             (e/with-chrome-headless (driver-opts) driver
+               (e/go driver url)
 
-             (when (e/exists? driver selector)
-               (e/screenshot-element driver selector filename)
-               (log/info "Made preview for repo" id)
-               true))
+               (when (e/exists? driver selector)
+                 (e/screenshot-element driver selector filename)
+                 (log/info "Made preview for repo" id)
+                 true))
 
-           (catch [:type :etaoin/http-error] {:keys [response]}
-             (if (str/includes? "tab crashed" (-> response :value :error))
-               (log/error "Preview crashed for repo" id)
-               (log/error "HTTP errror during preview for repo" id response)))
+             (catch [:type :etaoin/http-error] {:keys [response]}
+               (if (str/includes? "tab crashed" (-> response :value :error))
+                 (log/error "Preview crashed for repo" id)
+                 (log/error "HTTP errror during preview for repo" id response)))
 
-           (catch [:type :etaoin/http-ex] {:keys [response]}
-             (if (str/includes? "tab crashed" (-> response :value :error))
-               (log/error "Preview timed out for repo" id)
-               (log/error "HTTP errror during preview for repo" id response)))
+             (catch [:type :etaoin/http-ex] {:keys [response]}
+               (if (str/includes? "tab crashed" (-> response :value :error))
+                 (log/error "Preview timed out for repo" id)
+                 (log/error "HTTP errror during preview for repo" id response)))
 
-           (catch [:type :etaoin/timeout] _
-             (alter-in-app-config! [:app :features :preview] false)
-             (log/error "Timeout making preview for repo" id))
+             (catch [:type :etaoin/timeout] _
+               (alter-in-app-config! [:app :features :preview] false)
+               (log/error "Timeout making preview for repo" id))
 
-           (catch Object e
-             (if dev?
-               (do (tap> e) false)
-               (log/error "Failed to make preview for repo "
-                          (ex-format (:wrapper &throw-context))))))))))))
+             (catch Object e
+               (if dev?
+                 (do (tap> e) false)
+                 (log/error "Failed to make preview for repo "
+                            (ex-format (:wrapper &throw-context)))))))))))))
 
 (defn update-previews! [& {:keys [force-update] :or {force-update false}}]
   (when (-> app-config :app :features :preview)

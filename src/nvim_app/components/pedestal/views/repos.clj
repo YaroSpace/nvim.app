@@ -205,16 +205,16 @@
        [:form
         [:div {:class "flex items-start justify-between"}
          [:div {:class "flex-1 relative"}
-          [:div {:class "preview-popup absolute left-100 z-50 hidden invisible sm:visible p-2 border border-brand shadow-lg"
-                 :hx-get (url-for :preview :params {:id id}) :hx-include hx-include
-                 :hx-trigger "click" :hx-target "this"}
-           "Loading preview..."]
+          #_[:div {:class "preview-popup absolute left-100 z-50 hidden invisible sm:visible p-2 border border-brand shadow-lg"
+                   :hx-get (url-for :preview :params {:id id}) :hx-include hx-include
+                   :hx-trigger "click" :hx-target "this"}
+             "Loading preview..."]
 
           [:div {:class "flex sm:flex-row flex-col sm:items-center justify-between mb-2"}
            [:a {:class "repo-url flex items-center text-xl font-semibold text-brand-strong overflow-hidden
                    break-words break-all whitespace-normal max-w-full hyphens-auto"
-                :href url
-                :hx-on:mouseover "showPreview(this);" :hx-on:mouseleave "hidePreview(this);"}
+                :href url}
+                ; :hx-on:mouseover "showPreview(this);" :hx-on:mouseleave "hidePreview(this);"}
             name
 
             (when archived

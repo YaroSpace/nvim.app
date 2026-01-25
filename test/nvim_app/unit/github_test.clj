@@ -166,8 +166,8 @@
                                          :rate-limit {:remaining 500}}))]
 
       (let [result (search-and-add-repos! ["query1" "query2"])]
-        (expect (= 22 (count (:results result)))) ; 2 queries * split by 11 (<16, 16-26)
-        (expect (= 22 (count (:errors result))))
+        (expect (= 24 (count (:results result)))) ; 2 queries * split by 11 (<16, 16-26)
+        (expect (= 24 (count (:errors result))))
         (expect (= {:remaining 500} (:rate-limit result)))))))
 
 (defdescribe errors-summary-test

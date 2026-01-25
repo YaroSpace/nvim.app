@@ -19,17 +19,17 @@
    [:div {:id (str "repo-" id)
           :class "flex relative items-center min-h-2.5 py-1 px-2 border-b border-brand-light hover-brand transition-colors text-sm"}
 
-    [:div {:class "preview-popup absolute left-100 z-50 hidden invisible sm:visible p-2 bg-surface-card
+    #_[:div {:class "preview-popup absolute left-100 z-50 hidden invisible sm:visible p-2 bg-surface-card
                      border border-brand shadow-lg"
-           :hx-get (url-for :preview :params {:id id}) :hx-include hx-include
-           :hx-trigger "click" :hx-target "this"}
-     "Loading preview..."]
+             :hx-get (url-for :preview :params {:id id}) :hx-include hx-include
+             :hx-trigger "click" :hx-target "this"}
+       "Loading preview..."]
 
     [:div {:class "w-24 sm:w-48 flex"}
      [:a {:href url
           :class "pl-2 text-brand-strong hover:text-brand font-medium truncate block
-                   break-words break-all whitespace-normal max-w-full hyphens-auto"
-          :hx-on:mouseover "showPreview(this);" :hx-on:mouseleave "hidePreview(this);"}
+                   break-words break-all whitespace-normal max-w-full hyphens-auto"}
+          ; :hx-on:mouseover "showPreview(this);" :hx-on:mouseleave "hidePreview(this);"}
       (truncate-text name 40)]
 
      (when archived
