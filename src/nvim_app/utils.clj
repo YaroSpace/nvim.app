@@ -48,6 +48,11 @@
   (pretty-format
    (ex-short ex)))
 
+(defn log-pcall-error
+  "Helper function to log pcall errors. Extracted from macro to avoid AOT compilation issues."
+  [e]
+  (log/errorf "Error during pcall: %s" (ex-format e)))
+
 (defmacro with-pcall
   "Protected call, returns [success?, result of body or formatted exception]
 
@@ -62,7 +67,7 @@
        (let [result# (do ~@body)]
          [true result#])
        (catch Exception e#
-         (when-not ~silent?# (log/errorf "Error during pcall: %s" (ex-format e#)))
+         (when-not ~silent?# (log-pcall-error e#))
          [false (ex-short e#)]))))
 
 (defmacro with-rpcall

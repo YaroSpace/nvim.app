@@ -1,4 +1,4 @@
-FROM clojure:tools-deps-trixie-slim AS base
+FROM clojure:temurin-24-tools-deps-alpine AS base
 
 FROM base AS build
 # RUN apt update
