@@ -111,6 +111,25 @@
     :enter (fn [context]
              (assoc context :dependencies component))}))
 
+(def session-error-interceptor
+  "Handles corrupted or invalid session cookies by clearing them"
+  (interceptor/interceptor
+   {:name ::session-error-handler
+    :error (fn [context exception]
+             (if (and (instance? RuntimeException exception)
+                      (or (str/includes? (ex-message exception) "Invalid token")
+                          (str/includes? (ex-message exception) "session")))
+               (do
+                 (log/warn "Session cookie corruption detected, clearing session" 
+                           {:message (ex-message exception)})
+                 ;; Clear the corrupted session cookie
+                 (-> context
+                     (assoc-in [:request :session] {})
+                     (assoc-in [:response :session] {})
+                     (assoc :io.pedestal.interceptor.chain/error nil)))
+               ;; Re-throw if not a session error
+               (assoc context :io.pedestal.interceptor.chain/error exception)))}))
+
 (def auth-interceptor
   (interceptor/interceptor
    {:name ::inject-auth
@@ -144,11 +163,14 @@
                                 (select-keys request [:mode :view])))))}))
 
 (defn cookie-params [config]
-  {:cookie-name "nvim-app-session"
-   :store (cookie-store (when (string? (:cookie-key config))
-                          {:key (.getBytes (:cookie-key config))}))
-   :cookie-attrs {:max-age 2592000 :path "/"
-                  :http-only true :secure true}})
+  (let [cookie-key (:cookie-key config)]
+    (when-not (string? cookie-key)
+      (log/warn "Cookie key is not configured - session cookies will not be encrypted"))
+    {:cookie-name "nvim-app-session"
+     :store (cookie-store (when (string? cookie-key)
+                            {:key (.getBytes cookie-key)}))
+     :cookie-attrs {:max-age 2592000 :path "/"
+                    :http-only true :secure true}}))
 
 (defn service-map [config]
   {::http/routes (route/routes-from r/routes)
@@ -169,7 +191,8 @@
     (let [server (-> (service-map config)
                      http/default-interceptors
                      (update ::http/interceptors
-                             #(concat [exception-interceptor] %
+                             #(concat [exception-interceptor
+                                       session-error-interceptor] %
                                       [(inject-dependencies-interceptor this)
                                        auth-interceptor
                                        request-interceptor

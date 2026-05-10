@@ -127,3 +127,15 @@
      :where  [:and [:ilike :url "%github.com%"]
               [:= :stars 0] [:= :topics "awesome"]]})
    (map :id)))
+
+(comment
+  (db/select :repos :where [:= :id "ID3091"])
+
+  (def repos
+    ["ID4033858"
+      "ID3091"   
+      "ID1765"   
+      "ID3012"   
+      "ID1604"   
+      "ID3569"]))   
+    
